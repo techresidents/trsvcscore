@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
+from tridlcore.gen import TRService
 from tridlcore.gen.ttypes import ServiceStatus
 
-class ServiceHandler(object):
+class ServiceHandler(TRService.Iface, object):
     """Base class for service haandler"""
 
     def __init__(self, name, version, build):

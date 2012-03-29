@@ -64,17 +64,17 @@ class Mongrel2Service(Service):
         self.mongrel2_pub_addr = mongrel2_pub_addr
         self.mongrel2_greenlet = None
 
-        def start(self):
-            if not self.running:
-                super(Mongrel2Service, self).start()
-                self.greenlets.append(gevent.spawn(self.run_mongrel2))
-        
-        def run_mongrel2(self):
-            connection = Connection(
-                    self.mongrel2_sender_id,
-                    self.mongrel2_pull_addr,
-                    self.mongrel2_pub_addr)
+    def start(self):
+        if not self.running:
+            super(Mongrel2Service, self).start()
+            self.greenlets.append(gevent.spawn(self.run_mongrel2))
+    
+    def run_mongrel2(self):
+        connection = Connection(
+                self.mongrel2_sender_id,
+                self.mongrel2_pull_addr,
+                self.mongrel2_pub_addr)
 
-            while True:
-                request = connection.recv()
-                gevent.spawn(self.handler.handle, connection, request)
+        while True:
+            request = connection.recv()
+            gevent.spawn(self.handler.handle, connection, request)
