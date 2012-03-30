@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import logging
 import gevent
 
 from thrift import Thrift
@@ -33,8 +34,16 @@ class Service(object):
             self.greenlets.append(gevent.spawn(self.run))
     
     def run(self):
-        server = TGeventServer(self.processor, self.transport, self.transport_factory, self.protocol_factory)
-        server.serve()
+        while self.running:
+            try:
+                server = TGeventServer(self.processor, self.transport, self.transport_factory, self.protocol_factory)
+                server.serve()
+
+            except Exception as error:
+                logging.exception(error)
+
+            except gevent.GreenletExit:
+                break
     
     def stop(self):
         if self.running:
@@ -75,6 +84,13 @@ class Mongrel2Service(Service):
                 self.mongrel2_pull_addr,
                 self.mongrel2_pub_addr)
 
-        while True:
-            request = connection.recv()
-            gevent.spawn(self.handler.handle, connection, request)
+        while self.running:
+            try:
+                request = connection.recv()
+                gevent.spawn(self.handler.handle, connection, request)
+            
+            except Exception as error:
+                logging.exception(error)
+
+            except gevent.GreenletExit:
+                break
