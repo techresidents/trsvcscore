@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import logging
 import gevent
 
@@ -13,9 +11,10 @@ from trpycore.mongrel2_gevent.handler import Connection
 
 class Service(object):
     """Base class for gevent services"""
-    def __init__(self, host, port, handler, processor,
+    def __init__(self, name, host, port, handler, processor,
             transport=None, transport_factory=None, protocol_factory=None):
-
+        
+        self.name = name
         self.host = host
         self.port = port
         self.handler = handler
@@ -32,6 +31,7 @@ class Service(object):
         if not self.running:
             self.running = True
             self.greenlets.append(gevent.spawn(self.run))
+            self.handler.start()
     
     def run(self):
         while self.running:
@@ -48,12 +48,14 @@ class Service(object):
     def stop(self):
         if self.running:
             self.running = False
+            self.handler.stop()
             for greenlet in self.greenlets:
                 greenlet.kill()
 
             self.greenlets = []
     
     def join(self):
+        self.handler.join()
         for greenlet in self.greenlets:
             greenlet.join()
 
@@ -61,11 +63,11 @@ class Service(object):
 class Mongrel2Service(Service):
     """Base class for gevent Mongrel2 services"""
 
-    def __init__( self, host, port, processor, handler,
+    def __init__(self, name,  host, port, processor, handler,
             mongrel2_sender_id, mongrel2_pull_addr, mongrel2_pub_addr,
             transport=None, transport_factory=None, protocol_factory=None):
 
-        super(Mongrel2Service, self).__init__(host, port, handler, processor,
+        super(Mongrel2Service, self).__init__(name, host, port, handler, processor,
                 transport, transport_factory, protocol_factory)
 
         self.mongrel2_sender_id = mongrel2_sender_id

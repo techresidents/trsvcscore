@@ -1,23 +1,50 @@
-#!/usr/bin/env python
-
 import logging
-
-from trpycore.mongrel2_common.request import SafeRequest
 
 from tridlcore.gen import TRService
 from tridlcore.gen.ttypes import ServiceStatus
 
+from trpycore.mongrel2_common.request import SafeRequest
+from trpycore.zookeeper_gevent.client import ZookeeperClient
+from trsvcscore.http.error import HttpError
+from trsvcscore.registrar.zookeeper import ZookeeperServiceRegistrar
+
+
 class ServiceHandler(TRService.Iface, object):
     """Base class for service haandler"""
 
-    def __init__(self, name, version, build):
-        self.name = name,
+    def __init__(self, name, host, port, version, build, zookeeper_hosts):
+        self.name = name
+        self.host = host
+        self.port = port
         self.version = version
         self.build = build
         self.options = {}
         self.counters = {}
+        self.running = False
+
+        #Zookeeper client
+        self.zookeeper_client = ZookeeperClient(zookeeper_hosts)
+
+        #Registrar
+        self.registrar = ZookeeperServiceRegistrar(self.zookeeper_client)
+        
+        #service will be injected by service prior to start()
         self.service = None
     
+    def start(self):
+        if not self.running:
+            self.running = True
+            self.zookeeper_client.start()
+            self.registrar.register_service(self.name, self.port)
+    
+    def join(self):
+        self.zookeeper_client.join()
+    
+    def stop(self):
+        if self.running:
+            self.running = False
+            self.zookeeper_client.stop()
+
     def getName(self, requestContext):
         return self.name
 
@@ -28,13 +55,13 @@ class ServiceHandler(TRService.Iface, object):
         return self.build or "Unknown"
 
     def getStatus(self, requestContext):
-        if self.service and self.service.running:
+        if self.running:
             return ServiceStatus.ALIVE
         else:
             return ServiceStatus.DEAD
 
     def getStatusDetails(self, requestContext):
-        if self.service and self.service.running:
+        if self.running:
             return "Alive and well"
         else:
             return "Dead"
@@ -56,6 +83,7 @@ class ServiceHandler(TRService.Iface, object):
 
     def reinitialize(self, requestContext):
         pass
+
 
 class Mongrel2Handler(ServiceHandler):
     """Base class for Mongrel2 service handler
@@ -87,7 +115,13 @@ class Mongrel2Handler(ServiceHandler):
             handler_name = "handle_%s%s" % (method, url.replace("/", "_"))
             handler = getattr(self, handler_name.lower())
             response = handler(request)
-            connection.reply_http(unsafe_request, response)
+            if isinstance(response, basestring):
+                connection.reply_http(unsafe_request, response)
+            else:
+                connection.reply_http(unsafe_request, response[1], code=response[0])
+        
+        except HttpError as error:
+            connection.reply_http(unsafe_request, error.response, code=error.http_code)
 
         except AttributeError as error:
             logging.exception(error)
