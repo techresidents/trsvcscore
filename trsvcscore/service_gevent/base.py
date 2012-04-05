@@ -7,19 +7,19 @@ from thrift.protocol import TBinaryProtocol
 
 from trpycore.thrift_gevent.server import TGeventServer
 from trpycore.thrift_gevent.transport import TSocket
-from trpycore.mongrel2_gevent.handler import Connection
+from trpycore.mongrel2_gevent.handler import GConnection
 
-class Service(object):
+class GService(object):
     """Base class for gevent services"""
-    def __init__(self, name, host, port, handler, processor,
+    def __init__(self, name, interface, port, handler, processor,
             transport=None, transport_factory=None, protocol_factory=None):
         
         self.name = name
-        self.host = host
+        self.interface = interface
         self.port = port
         self.handler = handler
         self.processor = processor
-        self.transport = transport or TSocket.TServerSocket(self.host, self.port)
+        self.transport = transport or TSocket.TServerSocket(self.interface, self.port)
         self.transport_factory = transport_factory or TTransport.TBufferedTransportFactory()
         self.protocol_factory = protocol_factory or TBinaryProtocol.TBinaryProtocolFactory()
         self.greenlets = []
@@ -60,14 +60,14 @@ class Service(object):
             greenlet.join()
 
 
-class Mongrel2Service(Service):
+class GMongrel2Service(GService):
     """Base class for gevent Mongrel2 services"""
 
-    def __init__(self, name,  host, port, processor, handler,
+    def __init__(self, name,  interface, port, processor, handler,
             mongrel2_sender_id, mongrel2_pull_addr, mongrel2_pub_addr,
             transport=None, transport_factory=None, protocol_factory=None):
 
-        super(Mongrel2Service, self).__init__(name, host, port, handler, processor,
+        super(GMongrel2Service, self).__init__(name, interface, port, handler, processor,
                 transport, transport_factory, protocol_factory)
 
         self.mongrel2_sender_id = mongrel2_sender_id
@@ -77,11 +77,11 @@ class Mongrel2Service(Service):
 
     def start(self):
         if not self.running:
-            super(Mongrel2Service, self).start()
+            super(GMongrel2Service, self).start()
             self.greenlets.append(gevent.spawn(self.run_mongrel2))
     
     def run_mongrel2(self):
-        connection = Connection(
+        connection = GConnection(
                 self.mongrel2_sender_id,
                 self.mongrel2_pull_addr,
                 self.mongrel2_pub_addr)

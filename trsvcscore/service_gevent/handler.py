@@ -4,17 +4,17 @@ from tridlcore.gen import TRService
 from tridlcore.gen.ttypes import ServiceStatus
 
 from trpycore.mongrel2_common.request import SafeRequest
-from trpycore.zookeeper_gevent.client import ZookeeperClient
+from trpycore.zookeeper_gevent.client import GZookeeperClient
 from trsvcscore.http.error import HttpError
 from trsvcscore.registrar.zookeeper import ZookeeperServiceRegistrar
 
 
-class ServiceHandler(TRService.Iface, object):
+class GServiceHandler(TRService.Iface, object):
     """Base class for service haandler"""
 
-    def __init__(self, name, host, port, version, build, zookeeper_hosts):
+    def __init__(self, name, interface, port, version, build, zookeeper_hosts):
         self.name = name
-        self.host = host
+        self.interface = interface
         self.port = port
         self.version = version
         self.build = build
@@ -23,7 +23,7 @@ class ServiceHandler(TRService.Iface, object):
         self.running = False
 
         #Zookeeper client
-        self.zookeeper_client = ZookeeperClient(zookeeper_hosts)
+        self.zookeeper_client = GZookeeperClient(zookeeper_hosts)
 
         #Registrar
         self.registrar = ZookeeperServiceRegistrar(self.zookeeper_client)
@@ -85,7 +85,7 @@ class ServiceHandler(TRService.Iface, object):
         pass
 
 
-class Mongrel2Handler(ServiceHandler):
+class GMongrel2Handler(GServiceHandler):
     """Base class for Mongrel2 service handler
        
        Incoming http requests will be delegated to a method named as follows:
@@ -101,7 +101,7 @@ class Mongrel2Handler(ServiceHandler):
     """
 
     def __init__(self, *args, **kwargs):
-        super(Mongrel2Handler, self).__init__(*args, **kwargs)
+        super(GMongrel2Handler, self).__init__(*args, **kwargs)
     
     def handle(self, connection, unsafe_request):
         if unsafe_request.is_disconnect():
