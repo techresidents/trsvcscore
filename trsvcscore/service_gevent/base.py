@@ -13,6 +13,18 @@ class GService(object):
     """Base class for gevent services"""
     def __init__(self, name, interface, port, handler, processor,
             transport=None, transport_factory=None, protocol_factory=None):
+        """GService constructor.
+
+        Args:
+            name: service name, i.e. chatsvc
+            interface: interface for server to listen on, 0.0.0.0 for all.
+            port: service port
+            handler: GServiceHandler handler instance
+            processor: Thrift service processor
+            transport: optional Thrift transport class
+            transport_factory: optional Thrift transport factory
+            protocol_factory: optional Thrift protocol factory
+        """
         
         self.name = name
         self.interface = interface
@@ -25,9 +37,11 @@ class GService(object):
         self.greenlets = []
         self.running = False
         
+        #Inject service into handler
         self.handler.service = self
     
     def start(self):
+        """Start service."""
         if not self.running:
             self.running = True
             self.greenlets.append(gevent.spawn(self.run))
@@ -46,6 +60,7 @@ class GService(object):
                 break
     
     def stop(self):
+        """Stop service."""
         if self.running:
             self.running = False
             self.handler.stop()
@@ -55,17 +70,32 @@ class GService(object):
             self.greenlets = []
     
     def join(self):
+        """Join servce."""
         self.handler.join()
         for greenlet in self.greenlets:
             greenlet.join()
 
 
 class GMongrel2Service(GService):
-    """Base class for gevent Mongrel2 services"""
+    """Base class for gevent Mongrel2 services."""
 
     def __init__(self, name,  interface, port, processor, handler,
             mongrel2_sender_id, mongrel2_pull_addr, mongrel2_pub_addr,
             transport=None, transport_factory=None, protocol_factory=None):
+        """GMongrel2Service constructor.
+        Args:
+            name: service name, i.e. chatsvc
+            interface: interface for server to listen on, 0.0.0.0 for all.
+            port: service port
+            handler: GServiceHandler handler instance
+            mongrel2_sender_id: unique mongrel2 sender id (must be unique)
+            mongrel2_pull_addr: zeromq style pull address
+            mongrel2_pub_addr: zeromq style pub address
+            processor: Thrift service processor
+            transport: optional Thrift transport class
+            transport_factory: optional Thrift transport factory
+            protocol_factory: optional Thrift protocol factory
+        """
 
         super(GMongrel2Service, self).__init__(name, interface, port, handler, processor,
                 transport, transport_factory, protocol_factory)
