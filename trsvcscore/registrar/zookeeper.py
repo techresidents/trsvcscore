@@ -42,7 +42,7 @@ class ZookeeperServiceRegistrar(ServiceRegistrar):
         if not self.zookeeper_client.connected:
             raise RuntimeError("Zookeeper client not connected")
 
-        service_path = os.path.join("/services", registration.name)
+        service_path = os.path.join("/services", registration.name, "registry")
         service_node = os.path.join(service_path, registration.name)
         
         self.zookeeper_client.create_path(service_path)
@@ -94,12 +94,12 @@ class ZookeeperServiceRegistrar(ServiceRegistrar):
         
         try:
             services = []
-            path = os.path.join("/services", name)
+            path = os.path.join("/services", name, "registry")
             for child in self.zookeeper_client.get_children(path):
                 service_node = os.path.join(path, child)
                 data, stat = self.zookeeper_client.get_data(service_node)
                 services.append(ServiceRegistration.from_json(data))
-
+            
             if services:
                 #If host affinity is set try to find a service on this host
                 if host_affinity:
@@ -110,6 +110,52 @@ class ZookeeperServiceRegistrar(ServiceRegistrar):
                 
                 #If still no result, pick one at random
                 result = result or random.choice(services)
+
+        except Exception as error:
+            self.log.exception(error)
+
+        return result
+
+    def locate_zookeeper_service(self, name, host_affinity=True):
+        """Locate a random service instance.
+
+        Equivalent to locate_service, except the result is a tuple including
+        the zookeeper service node path. This is convenient if the user
+        would like to add a watch to the service.
+
+        Args:
+            name: service name
+            host_affinity: if True preference will be given to services
+                located on the same physical host. Otherwise a service
+                instance will be selected randomly.
+        
+        Returns:
+            (Zookeeper service node path, ServiceRegistration) tuple if service is located,
+            (None, None) otherwise.
+        """
+        result = (None, None)
+        
+        try:
+            services = {}
+
+            path = os.path.join("/services", name, "registry")
+            for child in self.zookeeper_client.get_children(path):
+                service_node = os.path.join(path, child)
+                data, stat = self.zookeeper_client.get_data(service_node)
+                services[os.path.join(path, child)] = ServiceRegistration.from_json(data)
+            
+            if services:
+                #If host affinity is set try to find a service on this host
+                if host_affinity:
+                    hostname = socket.gethostname()
+                    host_services = {p: s for p, s in services.items() if s.hostname == hostname }
+                    if host_services:
+                        service_path = random.choice(host_services.keys())
+                        result = (service_path, services[service_path])
+                
+                #If still no result, pick one at random
+                service_path = random.choice(host_services.keys())
+                result = (service_path, services[service_path])
 
         except Exception as error:
             self.log.exception(error)
@@ -128,7 +174,7 @@ class ZookeeperServiceRegistrar(ServiceRegistrar):
         result = []
 
         try:
-            path = os.path.join("/services", name)
+            path = os.path.join("/services", name, "registry")
             for child in self.zookeeper_client.get_children(path):
                 service_node = os.path.join(path, child)
                 data, stat = self.zookeeper_client.get_data(service_node)

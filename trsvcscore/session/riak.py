@@ -1,5 +1,7 @@
+import Queue
 import time
 
+from trpycore.pool.queue import QueuePool
 from trsvcscore.session.base import Session, SessionStore, SessionException
 
 
@@ -139,3 +141,41 @@ class RiakSessionStore(SessionStore):
             return RiakSession(session)
         else:
             return None
+
+
+class RiakSessionStorePool(QueuePool):
+    """Riak session store pool.
+
+    RiakClient is not thread / greenlet safe. This class provides a mechanism
+    for pooling RiakSessionStore objects in a thread / greenlet safe manner.
+    
+    Example usage:
+        with pool.get() as session_store:
+            session_store.create()
+    """
+    
+    def __init__(self, bucket_name, size, riak_client_factory, queue_class=Queue.Queue):
+        """RiakSessionStorePool constructor.
+
+        Args:
+            bucket_name: Riak session bucket name.
+            size: Number of RiakSessionStore objects to include in pool.
+            riak_client_factory: Factory object to create RiakClient objects.
+            queue_class: Optional Queue class. If not provided, will
+                default to Queue.Queue. The specified class must
+                have a no-arg constructor and provide a get(block, timeout)
+                method.
+        """
+        self.bucket_name = bucket_name
+        self.size = size
+        self.riak_client_factory = riak_client_factory
+        self.queue_class = queue_class
+        super(RiakSessionStorePool, self).__init__(
+                self.size,
+                factory=self,
+                queue_class=self.queue_class)
+    
+    def create(self):
+        """RiakSessionStore factory method."""
+        riak_client = self.riak_client_factory.create()
+        return RiakSessionStore(riak_client, self.bucket_name)
