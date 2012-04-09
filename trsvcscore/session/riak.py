@@ -154,21 +154,21 @@ class RiakSessionStorePool(QueuePool):
             session_store.create()
     """
     
-    def __init__(self, bucket_name, size, riak_client_factory, queue_class=Queue.Queue):
+    def __init__(self, riak_client_factory, bucket_name, size, queue_class=Queue.Queue):
         """RiakSessionStorePool constructor.
 
         Args:
+            riak_client_factory: Factory object to create RiakClient objects.
             bucket_name: Riak session bucket name.
             size: Number of RiakSessionStore objects to include in pool.
-            riak_client_factory: Factory object to create RiakClient objects.
             queue_class: Optional Queue class. If not provided, will
                 default to Queue.Queue. The specified class must
                 have a no-arg constructor and provide a get(block, timeout)
                 method.
         """
+        self.riak_client_factory = riak_client_factory
         self.bucket_name = bucket_name
         self.size = size
-        self.riak_client_factory = riak_client_factory
         self.queue_class = queue_class
         super(RiakSessionStorePool, self).__init__(
                 self.size,

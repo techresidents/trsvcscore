@@ -4,7 +4,7 @@ def session_required(func):
     """@session_required decorator.
 
     Checks to see if the incoming Mongrel2 request was sent with a valid sessionid cookie.
-    This decorator needs a SessionStore object available in self.session_store to run.
+    This decorator needs a SessionStore pool object available in self.session_store_pool to run.
     If the session is valid the decorated method will be invoked with an additional
     session argument containing the validate session.
 
@@ -12,9 +12,10 @@ def session_required(func):
         HTTPError if valid session is not found.
     """
     def check(self, request):
-        session = self.session_store.get_session(request.cookie("sessionid"))
-        if not session:
-            raise HttpError(401, "access denied")
-        else:
-            return func(self, request, session)
+        with self.session_store_pool.get() as session_store:
+            session = session_store.get_session(request.cookie("sessionid"))
+            if not session:
+                raise HttpError(401, "access denied")
+            else:
+                return func(self, request, session)
     return check
