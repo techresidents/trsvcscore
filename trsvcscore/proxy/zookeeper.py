@@ -1,10 +1,12 @@
 import logging
 import os
+import Queue
 import threading
 
 from thrift.protocol import TBinaryProtocol
 
 from tridlcore.gen import TRService
+from trpycore.pool.queue import QueuePool
 from trpycore.zookeeper_gevent.client import GZookeeperClient
 from trpycore.zookeeper_gevent.watch import GChildrenWatch
 from trpycore.zookeeper.watch import ChildrenWatch
@@ -97,14 +99,14 @@ class ZookeeperServiceProxy(object):
             self.watch = ChildrenWatch(self.zookeeper_client, self.registry_path, self._watch)
             self.lock = threading.Lock()
         
+        #Acquire the lock, and create the service client.
+        with self.lock:
+            self.service_node, self.service = self._create_service()
+
         #Start watching zookeeper /services/<service_name>/registry for
         #addition and removal of service instances, so we can
         #update our proxy if our instance goes down.
         self.watch.start()
-        
-        #Acquire the lock, and create the service client.
-        with self.lock:
-            self.service_node, self.service = self._create_service()
     
     def _watch(self, watcher):
         """Zookeper watcher callback.
@@ -134,6 +136,7 @@ class ZookeeperServiceProxy(object):
             (Zookeeper node, Service) tuple if service is available,
             otherwise (None, None).
         """
+
         result = (None, None)
         
         #Locate an available service instance in the registrar
@@ -184,3 +187,48 @@ class ZookeeperServiceProxy(object):
         
         #Return service object attribute.
         return getattr(self.service, attr)
+
+
+class ZookeeperServiceProxyPool(QueuePool):
+    """Zookeeper service proxy pool.
+    
+    Creates a queue of ZookeeperServiceProxy objects for use across threads / greenlets
+    depending on the chosen queue_class.
+
+    Example usage:
+        with pool.get() as service:
+            service.getVersion(RequestContext())
+    """
+    
+    def __init__(self, zookeeper_client, service_name, size, service_class=None, queue_class=Queue.Queue):
+        """ZookeeperServiceProxyPool constructor.
+
+        Args:
+            zookeeper_client: Zookeeper client object.
+            service_name: Service name, i.e. chatsvc
+            service_class: Optional service class, i.e. TChatService.
+                If not provided, TRService will be used which will
+                only provide proxying to the service methods defined
+                within TRService.
+            size: Number of ZookeeperSessionStore objects to include in pool.
+            queue_class: Optional queue class. If not provided, will
+                default to Queue.Queue. The specified class must
+                have a no-arg constructor and provide a get(block, timeout)
+                method.
+        """
+        self.zookeeper_client = zookeeper_client
+        self.service_name = service_name
+        self.size = size
+        self.service_class = service_class
+        self.queue_class = queue_class
+        super(ZookeeperServiceProxyPool, self).__init__(
+                self.size,
+                factory=self,
+                queue_class=self.queue_class)
+    
+    def create(self):
+        """ZookeeperServiceProxy factory method."""
+        return ZookeeperServiceProxy(
+                self.zookeeper_client,
+                self.service_name,
+                service_class=self.service_class)
