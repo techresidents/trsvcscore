@@ -13,11 +13,11 @@ def session_required(func):
         HTTPError if valid session is not found.
     """
 
-    def check(self, request):
+    def check(self, request, **kwargs):
         with self.session_store_pool.get() as session_store:
             session = session_store.get_session(request.cookie("sessionid"))
             if not session:
                 raise HttpError(401, "access denied")
             else:
-                return func(self, request, session)
+                return func(self, request, session, **kwargs)
     return check
