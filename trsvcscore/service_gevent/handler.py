@@ -13,7 +13,7 @@ from trsvcscore.registrar.zookeeper import ZookeeperServiceRegistrar
 class GServiceHandler(TRService.Iface, object):
     """Base class for gevent service handler."""
 
-    def __init__(self, name, interface, port, version, build, zookeeper_hosts):
+    def __init__(self, name, interface, port, version, build, zookeeper_hosts, database_connection=None):
         """GServiceHandler constructor.
 
         Args:
@@ -23,6 +23,7 @@ class GServiceHandler(TRService.Iface, object):
             version: service version (string)
             build: service build number (string)
             zookeeper_hosts: list of zookeeper hosts, i.e. ["localhost:2181", "localdev:2181"]
+            database_connection: optional database connection string
         """
         self.name = name
         self.interface = interface
@@ -36,12 +37,23 @@ class GServiceHandler(TRService.Iface, object):
         #Zookeeper client
         self.zookeeper_client = GZookeeperClient(zookeeper_hosts)
 
+        #Database session factory
+        if database_connection:
+            #Make psycogp2 driver compatible with gevent
+            from trpycore import psycopg2_gevent
+            from sqlalchemy import create_engine
+            from sqlalchemy.orm import sessionmaker
+            engine = create_engine(database_connection)
+            self.DatabaseSession = sessionmaker(bind=engine)
+        else:
+            self.DatabaseSession = None
+
         #Registrar
         self.registrar = ZookeeperServiceRegistrar(self.zookeeper_client)
         
         #service will be injected by service prior to start()
         self.service = None
-    
+
     def start(self):
         """Start service handler."""
         if not self.running:
@@ -58,6 +70,19 @@ class GServiceHandler(TRService.Iface, object):
         if self.running:
             self.running = False
             self.zookeeper_client.stop()
+
+    def get_database_session(self):
+        """Return new database SQLAlchemy database session.
+
+        Returns:
+            new SQLAlchemy session
+        Raises:
+            RuntimeError: If database_connection not provided to handler.
+        """
+        if self.DatabaseSession:
+            return self.DatabaseSession()
+        else:
+            raise RuntimeError("database_connection not provided")
 
     def getName(self, requestContext):
         """Get service name.
