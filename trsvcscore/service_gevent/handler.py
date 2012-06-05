@@ -209,6 +209,23 @@ class GMongrel2Handler(GServiceHandler):
     the client.
     """
 
+    class Response(object):
+        """Mongrel2 response object.
+
+        This object should be returned from url handlers.
+        """
+        def __init__(self, data=None, code=200, headers=None):
+            self.data = data 
+            self.code = code
+            self.headers = headers or {}
+    
+    class JsonResponse(Response):
+        """Mongrel2 JSON response."""
+        def __init__(self, *args, **kwargs):
+            super(GMongrel2Handler.JsonResponse, self).__init__(*args, **kwargs)
+            self.headers["content-type"] = "application/json"
+
+
     def __init__(self, url_handlers=None, *args, **kwargs):
         """GMongrel2Handler constructor.
         
@@ -257,9 +274,8 @@ class GMongrel2Handler(GServiceHandler):
         the "handle_post_myapp_chat" method with a SafeRequest as 
         the sole parameter.
 
-        Delegated methods may return the http response (string),
-        or a (http_code, response) tuple, or
-        raise an HttpError exception to signal an error.
+        Delegated methods may return a Response object
+        or raise an HttpError exception to signal an error.
         """
 
         request = SafeRequest(unsafe_request)
@@ -289,10 +305,11 @@ class GMongrel2Handler(GServiceHandler):
             #Process the request
             handler = getattr(self, handler_name)
             response = handler(request, **match.groupdict())
-            if isinstance(response, basestring):
-                connection.reply_http(unsafe_request, response)
-            else:
-                connection.reply_http(unsafe_request, response[1], code=response[0])
+            connection.reply_http(
+                    unsafe_request,
+                    body=response.data,
+                    code=response.code,
+                    headers=response.headers)
         
         except HttpError as error:
             connection.reply_http(unsafe_request, error.response, code=error.http_code)
