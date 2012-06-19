@@ -1,5 +1,6 @@
 import abc
 import uuid
+import time
 
 class SessionException(Exception):
     """General purpose session exception."""
@@ -55,6 +56,15 @@ class Session(object):
         return
 
     @abc.abstractmethod
+    def user_id(self):
+        """Get user id associated with session.
+
+        Returns:
+            User id if session is authenticated, None otherwise.
+        """
+        return
+
+    @abc.abstractmethod
     def expires(self):
         """Get session expiration time.
 
@@ -62,6 +72,24 @@ class Session(object):
             Expiration time in seconds (Epoch time)
         """
         return
+
+    @abc.abstractmethod
+    def is_authenticated(self):
+        """Test if session is authenticated (user_id present).
+
+        Returns:
+            True if session is authenticated, False otherwise.
+        """
+        return self.user_id() is not None
+
+    @abc.abstractmethod
+    def is_expired(self):
+        """Test if session is expired.
+
+        Returns:
+            True if session is expired, False otherwise.
+        """
+        return time.time() >= self.expires()
 
 
 class SessionStore(object):
@@ -75,13 +103,14 @@ class SessionStore(object):
         return uuid.uuid4().hex
 
     @abc.abstractmethod
-    def create(self, expire_time=None, session_key=None):
+    def create(self, expire_time=None, user_id=None, session_key=None):
         """Create a new session.
 
         Args:
             expire_time: Optional expirate time in seconds (Epoch time)
                 when the session should expire. If None, the current
                 time + DEFAULT_SESSION_LIFE will be used.
+            user_id: Optional user_id to determine authentication status.
             session_key: optional session key to use. If provided
                 the session_key must be unique or SessionException
                 will be raised. If not provided, a unique session key
@@ -93,13 +122,16 @@ class SessionStore(object):
         return
     
     @abc.abstractmethod
-    def get_session(self, session_key):
-        """Get a session for the give session_key.
+    def get_session(self, session_key, allow_expired=False, allow_non_authenticated=False):
+        """Get a session for the give session_key with specified allowances.
 
         Args:
             session_key: session key (string)       
+            allow_expired: allow expired sessions to be returned.
+            allow_non_authenticated: allow non-authenticated sessions
+                to be returned.
         Returns:
-            Session object if session if found and valid,
+            Session object if session is found and non-expired,
             None otherwise.
         """
         return

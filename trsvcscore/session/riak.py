@@ -10,7 +10,7 @@ class RiakSession(Session):
         """Session constructor.
 
         Args:
-            session_key: unique session key (string)
+            session: Riak session bucket object.
         """
         super(RiakSession, self).__init__(session.get_key())
         self._session = session
@@ -49,6 +49,15 @@ class RiakSession(Session):
     def delete(self):
         """Delete this session from session store."""
         self._session.delete()
+
+    def user_id(self):
+        """Get user id associated with session.
+
+        Returns:
+            User id if session is authenticated, None otherwise.
+        """
+        data = self._session.get_data()
+        return data.get("user_id", None)
     
     def expires(self):
         """Get session expiration time.
@@ -58,6 +67,22 @@ class RiakSession(Session):
         """
         data = self._session.get_data()
         return data.get("expire_time", None)
+
+    def is_authenticated(self):
+        """Test if session is authenticated (user_id present).
+
+        Returns:
+            True if session is authenticated, False otherwise.
+        """
+        return super(RiakSession, self).is_authenticated()
+
+    def is_expired(self):
+        """Test if session is expired.
+
+        Returns:
+            True if session is expired, False otherwise.
+        """
+        return super(RiakSession, self).is_expired()
         
 
 class RiakSessionStore(SessionStore):
@@ -72,13 +97,14 @@ class RiakSessionStore(SessionStore):
         self.client = client
         self.bucket = self.client.bucket(bucket_name)
 
-    def create(self, expire_time=None, session_key=None):
+    def create(self, expire_time=None, user_id=None, session_key=None):
         """Create a new session.
 
         Args:
             expire_time: Optional expirate time in seconds (Epoch time)
                 when the session should expire. If None, the current
                 time + DEFAULT_SESSION_LIFE will be used.
+            user_id: Optional user_id to determine authentication status.
             session_key: optional session key to use. If provided
                 the session_key must be unique or SessionException
                 will be raised. If not provided, a unique session key
@@ -102,7 +128,8 @@ class RiakSessionStore(SessionStore):
             
             data = {
                 "session_data" : {},
-                "expire_time" : expire_time
+                "expire_time" : expire_time,
+                "user_id": user_id,
             }
             
             
@@ -122,13 +149,16 @@ class RiakSessionStore(SessionStore):
 
             return RiakSession(session)
     
-    def get_session(self, session_key):
-        """Get a session for the give session_key.
+    def get_session(self, session_key, allow_expired=False, allow_non_authenticated=False):
+        """Get a session for the give session_key with specified allowances.
 
         Args:
             session_key: session key (string)       
+            allow_expired: allow expired sessions to be returned.
+            allow_non_authenticated: allow non-authenticated sessions
+                to be returned.
         Returns:
-            RiakSession object if session if found and valid,
+            Session object if session is found and non-expired,
             None otherwise.
         """
         if session_key is None:
@@ -136,9 +166,11 @@ class RiakSessionStore(SessionStore):
 
         session = self.bucket.get(session_key)
 
-        #If the session exists and is not expired, return it.
-        if session.exists() and time.time() < session.get_data()["expire_time"]:
-            return RiakSession(session)
+        if session.exists():
+            riak_session = RiakSession(session)
+            if (allow_expired or not riak_session.is_expired()) \
+                    and (allow_non_authenticated or riak_session.is_authenticated()):
+                return riak_session
         else:
             return None
 
