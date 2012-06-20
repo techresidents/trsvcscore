@@ -47,8 +47,8 @@ class ZookeeperServiceProxy(object):
             return False
 
 
-    def __init__(self, zookeeper_client, service_name,
-            service_class=None, transport_class=None, protocol_class=None):
+    def __init__(self, zookeeper_client, service_name, service_class=None,
+            transport_class=None, protocol_class=None, keepalive=False):
         """ZookeeperServiceProxy constructor.
 
         Args:
@@ -66,16 +66,22 @@ class ZookeeperServiceProxy(object):
                 appropriately patched for gevent comptability.
             protocol_class: Option Thrift protocol class. If not
                 provided this will default to TBinaryProtocol.
+            keepalive: Optional boolean indicating if transport should
+                be kept open between requests. If false, transport
+                will be opened and closed for each service request.
         """
         self.zookeeper_client = zookeeper_client
         self.service_name = service_name
+        self.keepalive = keepalive
         self.service_class = service_class or TRService
         self.protocol_class = protocol_class or TBinaryProtocol.TBinaryProtocol
         self.registrar = ZookeeperServiceRegistrar(self.zookeeper_client)
         self.registry_path = os.path.join("/services", self.service_name, "registry")
 
-        self.service = None        #Service client object
-        self.service_node = None   #Service zookeeper node, i.e. chatsvc_00000001
+        self.service = None               #Service client object
+        self.service_transport = None     #Service client transport
+        self.service_node = None          #Service zookeeper node, i.e. chatsvc_00000001
+        self.service_method_wrappers = {} #Service method wrappers
         
         #Staged service client object and node.
         #If the the current self.service become unavailable
@@ -101,13 +107,41 @@ class ZookeeperServiceProxy(object):
         
         #Acquire the lock, and create the service client.
         with self.lock:
-            self.service_node, self.service = self._create_service()
+            self.service_node, self.service, self.service_transport = self._create_service()
 
         #Start watching zookeeper /services/<service_name>/registry for
         #addition and removal of service instances, so we can
         #update our proxy if our instance goes down.
         self.watch.start()
+
+    def open_transport(self):
+        """Open service transport.
+        Raises:
+            ServiceProxyException if service is not available.
+        """
+        try:
+            if self.service_transport:
+                if not self.service_transpot.isOpen():
+                    self.service_transport.open()
+            else:
+                raise ServiceProxyException("service unavailable")
+        except Exception:
+            raise ServiceProxyException("service unavailable")
     
+    def close_transport(self):
+        """Open service transport.
+        Raises:
+            ServiceProxyException if service is not available.
+        """
+        try:
+            if self.service_transport:
+                if self.service_transpot.isOpen():
+                    self.service_transport.close()
+            else:
+                raise ServiceProxyException("service unavailable")
+        except Exception:
+            raise ServiceProxyException("service unavailable")
+
     def _watch(self, watcher):
         """Zookeper watcher callback.
 
@@ -133,11 +167,11 @@ class ZookeeperServiceProxy(object):
         """Create a new service client object.
 
         Returns:
-            (Zookeeper node, Service) tuple if service is available,
-            otherwise (None, None).
+            (Zookeeper node, Service, Transport) tuple if service is available,
+            otherwise (None, None, None).
         """
 
-        result = (None, None)
+        result = (None, None, None)
         
         #Locate an available service instance in the registrar
         path, registration = self.registrar.locate_zookeeper_service(self.service_name)
@@ -150,14 +184,33 @@ class ZookeeperServiceProxy(object):
             protocol = self.protocol_class(transport)
             service = self.service_class.Client(protocol)
 
-            try:
-                transport.open()
-            except Exception as error:
-                logging.exception(error)
-
-            result = (node, service)
+            result = (node, service, transport)
 
         return result
+
+    def _get_service_method_wrapper(self, method):
+        """Create a service method wrapper to manage transport.
+
+        Users will receive a wrapper version of service methods
+        which ensures that the transport is opened for each
+        request and is properly governed by keepalive setting.
+        """
+
+        if method not in self.service_method_wrappers:
+            def wrapper(*args, **kwargs):
+                try:
+                    if not self.service_transport.isOpen():
+                        self.service_transport.open()
+                    return method(*args, **kwargs)
+                except Exception as error:
+                    logging.exception(error)
+                    raise ServiceProxyException("service unavailable")
+                finally:
+                    if not self.keepalive and self.service_transport.isOpen():
+                        self.service_transport.close()
+            self.service_method_wrappers[method] = wrapper
+        return self.service_method_wrappers[method]
+
 
     def __getattr__(self, attr):
         """Proxy all attributes to service object.
@@ -166,6 +219,10 @@ class ZookeeperServiceProxy(object):
         to the underlying service object. This allow users
         to invoke service methods directrly through
         this class. 
+
+        Note that service methods will be decorated with a
+        wrapper which ensures that the transport is open
+        and governed per the keepalive setting.
 
         Raises:
             ServiceProxyException if service is not available.
@@ -186,7 +243,10 @@ class ZookeeperServiceProxy(object):
             raise ServiceProxyException("service unavailable")
         
         #Return service object attribute.
-        return getattr(self.service, attr)
+        attribute = getattr(self.service, attr)
+        if hasattr(attribute, "__call__"):
+            attribute = self._get_service_method_wrapper(attribute)
+        return attribute
 
 
 class ZookeeperServiceProxyPool(QueuePool):
