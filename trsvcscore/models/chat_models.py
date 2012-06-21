@@ -21,6 +21,10 @@ class Chat(Base):
     topic_id = Column(Integer, ForeignKey("topic.id"))
     start = Column(DateTime)
     end = Column(DateTime)
+    registration_start = Column(DateTime)
+    registration_end = Column(DateTime)
+    checkin_start = Column(DateTime)
+    checkin_end = Column(DateTime)
 
     type = relationship(ChatType)
     topic = relationship(Topic)

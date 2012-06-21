@@ -1,11 +1,13 @@
 import logging
 import threading
+import time
 
 from thrift import Thrift
 from thrift.transport import TTransport, TSocket
 from thrift.protocol import TBinaryProtocol
 
 from trpycore.thrift.server import TThreadPoolServer
+from trpycore.thread.util import join
 
 class Service(threading.Thread):
     """Base class for services"""
@@ -94,7 +96,10 @@ class Service(threading.Thread):
 
             except Exception as error:
                 logging.exception(error)
-    
+
+    def join(self, timeout=None):
+        join([self.handler, super(Service, self)], timeout)
+
     def stop(self):
         """Stop service."""
         if self.running:
