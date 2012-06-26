@@ -1,5 +1,5 @@
 from sqlalchemy import Boolean, Column, Integer, ForeignKey, String
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, backref
 
 from trsvcscore.models.base import Base
 from trsvcscore.models.django_models import User
@@ -9,6 +9,16 @@ RESOURCE_TYPES = {
     "WHITEBOARD": 2,
     "CODEBOARD": 3,
 }
+
+class Concept(Base):
+    __tablename__ = "concept"
+
+    id = Column(Integer, primary_key=True)
+    parent_id = Column(Integer, ForeignKey("concept.id"))
+    name = Column(String(100))
+    description = Column(String(1024))
+
+    children = relationship("Concept", backref=backref("parent", remote_side=[id]))
 
 class ExpertiseType(Base):
     __tablename__ = "expertise_type"
@@ -48,6 +58,9 @@ class Tag(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String(100))
+    concept_id = Column(Integer, ForeignKey("concept.id"))
+
+    concept = relationship(Concept)
 
 class TechnologyType(Base):
     __tablename__ = "technology_type"
@@ -109,6 +122,7 @@ class Topic(Base):
     public = Column(Boolean)
     user_id = Column(Integer, ForeignKey("auth_user.id"))
 
+    children = relationship("Topic", backref=backref("parent", remote_side=[id]))
     type = relationship(TopicType)
     user = relationship(User)
     resources = relationship(Resource, secondary=lambda: TopicResource.__table__)

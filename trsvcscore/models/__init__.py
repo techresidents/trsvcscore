@@ -1,7 +1,7 @@
 from trsvcscore.models.django_models import User
 
 from trsvcscore.models.common_models import \
-        Codeboard, CodeboardResource, Document, DocumentResource, \
+        Codeboard, CodeboardResource, Concept, Document, DocumentResource, \
         ExpertiseType, Location, MimeType, Organization, \
         Quality, Resource, ResourceType, Tag, Technology, \
         TechnologyType, Topic, TopicResource, TopicType, \

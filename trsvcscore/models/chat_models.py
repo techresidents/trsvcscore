@@ -102,7 +102,8 @@ class ChatTag(Base):
 
     id = Column(Integer, primary_key=True)
     chat_minute_id = Column(Integer, ForeignKey("chat_minute.id"))
-    tag_id = Column(Integer, ForeignKey("tag.id"))
+    tag_id = Column(Integer, ForeignKey("tag.id"), nullable=True)
+    name = Column(String(1024))
 
     chat_minute = relationship(ChatMinute)
     tag = relationship(Tag)
