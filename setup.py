@@ -14,10 +14,10 @@ def find_packages():
 
 setup(
     name='trsvcscore',
-    version = '0.4-SNAPSHOT',
-    author = '30and30',
+    version = '0.4.0',
+    author = 'Tech Residents, Inc.',
     packages = find_packages(),
     license = 'LICENSE',
-    description = '30and30 Python Tech Residents Services Core Library',
+    description = 'Tech Residents Services Core Library',
     long_description = open('README').read(),
 )
