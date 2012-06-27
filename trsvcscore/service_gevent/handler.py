@@ -104,7 +104,7 @@ class GServiceHandler(TRService.Iface, object):
         Returns:
             service version (string)
         """
-        return self.version or "Unkown"
+        return self.version or "Unknown"
 
     def getBuildNumber(self, requestContext):
         """Get service build number.
