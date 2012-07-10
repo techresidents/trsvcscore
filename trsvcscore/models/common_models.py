@@ -76,7 +76,6 @@ class Technology(Base):
     type_id = Column(Integer, ForeignKey("technology_type.id"))
     name = Column(String(100))
     description = Column(String(1024))
-    is_profile_default = Column(Boolean)
 
 class Quality(Base):
     __tablename__ = "quality"
