@@ -61,9 +61,9 @@ class GServiceHandler(TRService.Iface, object):
             self.zookeeper_client.start()
             self.registrar.register_service(self.name, self.port)
     
-    def join(self):
+    def join(self, timeout=None):
         """Join service handler."""
-        self.zookeeper_client.join()
+        self.zookeeper_client.join(timeout)
     
     def stop(self):
         """Stop service handler."""

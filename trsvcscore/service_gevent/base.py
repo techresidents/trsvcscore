@@ -1,10 +1,10 @@
 import logging
 import gevent
 
-from thrift import Thrift
 from thrift.transport import TTransport
 from thrift.protocol import TBinaryProtocol
 
+from trpycore.greenlet.util import join
 from trpycore.thrift_gevent.server import TGeventServer
 from trpycore.thrift_gevent.transport import TSocket
 from trpycore.mongrel2_gevent.handler import GConnection
@@ -34,7 +34,7 @@ class GService(object):
         self.transport = transport or TSocket.TServerSocket(self.interface, self.port)
         self.transport_factory = transport_factory or TTransport.TBufferedTransportFactory()
         self.protocol_factory = protocol_factory or TBinaryProtocol.TBinaryProtocolFactory()
-        self.greenlets = []
+        self.greenlet = None
         self.running = False
         
         #Inject service into handler
@@ -44,7 +44,7 @@ class GService(object):
         """Start service."""
         if not self.running:
             self.running = True
-            self.greenlets.append(gevent.spawn(self.run))
+            self.greenlet = gevent.spawn(self.run)
             self.handler.start()
     
     def run(self):
@@ -64,16 +64,15 @@ class GService(object):
         if self.running:
             self.running = False
             self.handler.stop()
-            for greenlet in self.greenlets:
-                greenlet.kill()
-
-            self.greenlets = []
+            if self.greenlet:
+                self.greenlet.kill()
     
-    def join(self):
-        """Join servce."""
-        self.handler.join()
-        for greenlet in self.greenlets:
-            greenlet.join()
+    def join(self, timeout=None):
+        """Join service."""
+        if self.greenlet:
+            join([self.handler, self.greenlet], timeout)
+        else:
+            self.handler.join(timeout)
 
 
 class GMongrel2Service(GService):
@@ -106,9 +105,25 @@ class GMongrel2Service(GService):
         self.mongrel2_greenlet = None
 
     def start(self):
+        """Start service."""
         if not self.running:
             super(GMongrel2Service, self).start()
-            self.greenlets.append(gevent.spawn(self.run_mongrel2))
+            self.mongrel2_greenlet = gevent.spawn(self.run_mongrel2)
+    
+    def stop(self):
+        """Stop service."""
+        if self.running:
+            if self.mongrel2_greenlet:
+                self.mongrel2_greenlet.kill()
+            super(GMongrel2Service, self).stop()
+
+    def join(self, timeout=None):
+        """Join service."""
+        if self.mongrel2_greenlet:
+            greenlets = [self.mongrel2_greenlet, super(GMongrel2Service, self)]
+            join(greenlets, timeout)
+        else:
+            super(GMongrel2Service, self).join(timeout)
     
     def run_mongrel2(self):
         connection = GConnection(

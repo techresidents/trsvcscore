@@ -1,57 +1,34 @@
 import logging
-import os
-import threading
 
 from trpycore.pool.queue import QueuePool
-from trpycore.zookeeper_gevent.watch import GChildrenWatch
-from trpycore.zookeeper.watch import ChildrenWatch
-from trsvcscore.registrar.zookeeper import ZookeeperServiceRegistrar
 from trsvcscore.proxy.base import ServiceProxyException, ServiceProxy
 
-class ZookeeperServiceProxy(ServiceProxy):
-    """Zookeeper based service proxy.
+class BasicServiceProxy(ServiceProxy):
+    """Basic service proxy.
 
     This class provides a convenience proxy for consuming
-    services in a robust manner which automatically handles
-    locating service instances on the network and adjusting
-    for service unavailability.
-
-    This class assumes that all available services will have
-    registered with ZookeeperServiceRegistrar.
+    services in a robust manner, properly handling
+    service disconnections.
 
     This class will proxy all methods and attributes to the
-    underlying service object. If no service is unavailable,
+    underlying service object. If the service is unavailable,
     a ServiceProxyException will be raised.
 
     Example usage:
-        proxy = ZookeeperServiceProxy(client, "chatsvc")
+        proxy = BasicServiceProxy("chatsvc", "localhost", 9090)
         proxy.getVersion(RequestContext())
     """
 
-    class NoOpLock(object):
-        """Lock context manager which does nothing, no-op.
 
-        This is a standin for a lock context manager, when
-        locking is not really needed.
-        """
-        def __enter__(self):
-            return
-
-        def __exit__(self, exception_type, exception_value, exception_traceback):
-            """Exit context manager without supressing exceptions."""
-            return False
-
-
-    def __init__(self, zookeeper_client, service_name,
-            service_class=None, transport_class=None, protocol_class=None,
-            keepalive=False, is_gevent=False):
-        """ZookeeperServiceProxy constructor.
+    def __init__(self, service_name, service_hostname, service_port,
+            service_class=None, transport_class=None,
+            protocol_class=None, keepalive=False, is_gevent=False):
+        """BasicServiceProxy constructor.
 
         Args:
-            zookeeper_client: Zookeeper client object.  Implementation
-                of this proxy will be adjusted based on if this is a
-                ZookeeperClient or GZookeeperClient instance.
             service_name: Service name, i.e., chatsvc
+            service_hostname: service hostname
+            service_port: service port
             service_class: Optional service class, i.e. TChatService.
                 If not provided, TRService will be used which will
                 only provide proxying to the service methods defined
@@ -70,7 +47,7 @@ class ZookeeperServiceProxy(ServiceProxy):
                 transport_class will be patched for gevent 
                 compatability.
         """
-        super(ZookeeperServiceProxy, self).__init__(
+        super(BasicServiceProxy, self).__init__(
                 service_name,
                 service_class,
                 transport_class,
@@ -78,41 +55,16 @@ class ZookeeperServiceProxy(ServiceProxy):
                 keepalive,
                 is_gevent)
 
-        self.zookeeper_client = zookeeper_client
-        self.registrar = ZookeeperServiceRegistrar(self.zookeeper_client)
-        self.registry_path = os.path.join("/services", self.service_name, "registry")
+        self.service_hostname = service_hostname
+        self.service_port = service_port
+        self.is_gevent = is_gevent
 
-        self.service = None               #Service client object
-        self.service_transport = None     #Service client transport
-        self.service_node = None          #Service zookeeper node, i.e. chatsvc_00000001
-        self.service_method_wrappers = {} #Service method wrappers
-        
-        #Staged service client object, node, and transport.
-        #If the the current self.service become unavailable
-        #the _watcher() callback will be invoked asynchronously
-        #by the zookeeper client. At this point, we'll create
-        #a new service client object and stage it for update
-        #on the next user invocation.
-        self.staged_service = None
-        self.staged_service_node = None
-        self.staged_service_transport = None
-        
-        #If we're in a gevent app adjust the lock, and watch accordingly.
-        if self.is_gevent:
-            self.watch = GChildrenWatch(self.zookeeper_client, self.registry_path, self._watch)
-            self.lock = self.NoOpLock()
-        else:
-            self.watch = ChildrenWatch(self.zookeeper_client, self.registry_path, self._watch)
-            self.lock = threading.Lock()
-        
-        #Acquire the lock, and create the service client.
-        with self.lock:
-            self.service_node, self.service, self.service_transport = self._create_service()
+        self.service_transport = self.transport_class(self.service_hostname, self.service_port)
+        self.service_protocol = self.protocol_class(self.service_transport)
+        self.service = self.service_class.Client(self.service_protocol)
 
-        #Start watching zookeeper /services/<service_name>/registry for
-        #addition and removal of service instances, so we can
-        #update our proxy if our instance goes down.
-        self.watch.start()
+        self.service_method_wrappers  ={}
+
 
     def open_transport(self):
         """Open service transport.
@@ -142,54 +94,7 @@ class ZookeeperServiceProxy(ServiceProxy):
         except Exception:
             raise ServiceProxyException("service unavailable")
 
-    def _watch(self, watcher):
-        """Zookeper watcher callback.
-
-        This method will be invoked asynchronously if instances
-        of this service are added or removed. If our instance
-        is no longer available, create a new, staged, service
-        object while will be swapped in on the next user
-        invocation.
-        """
-        services = watcher.get_children()
-
-        #If our service is no longer available, create a new one.
-        if self.service_node not in services and \
-            self.staged_service_node not in services:
-            
-            node, service, transport = self._create_service()
-            
-            #Update staged service and node.
-            with self.lock:
-                self.staged_service_node = node
-                self.staged_service = service
-                self.staged_service_transport = transport
         
-    def _create_service(self):
-        """Create a new service client object.
-
-        Returns:
-            (Zookeeper node, Service, Transport) tuple if service is available,
-            otherwise (None, None, None).
-        """
-
-        result = (None, None, None)
-        
-        #Locate an available service instance in the registrar
-        path, registration = self.registrar.locate_zookeeper_service(self.service_name)
-
-        #If a service instance is available, create the object and stage
-        #it to be swapped in on the next user invocation.
-        if path and registration:
-            node = os.path.basename(path)
-            transport = self.transport_class(registration.hostname, registration.port)
-            protocol = self.protocol_class(transport)
-            service = self.service_class.Client(protocol)
-
-            result = (node, service, transport)
-
-        return result
-
     def _get_service_method_wrapper(self, method):
         """Create a service method wrapper to manage transport.
 
@@ -219,7 +124,7 @@ class ZookeeperServiceProxy(ServiceProxy):
 
         This method will proxy all attribute requests
         to the underlying service object. This allow users
-        to invoke service methods directrly through
+        to invoke service methods directly through
         this class. 
 
         Note that service methods will be decorated with a
@@ -230,19 +135,6 @@ class ZookeeperServiceProxy(ServiceProxy):
             ServiceProxyException if service is not available.
         """
 
-        #If a new service object is stage, acquire the
-        #lock and swap it in.
-        if self.staged_service:
-            with self.lock:
-                self.service = self.staged_service
-                self.staged_service = None
-
-                self.service_node = self.staged_service_node
-                self.staged_service_node = None
-
-                self.service_transport = self.staged_service_transport
-                self.staged_service_transport = None
-        
         #If the service is unavailable raise ServiceProxyException.
         if self.service is None:
             raise ServiceProxyException("service unavailable")
@@ -254,30 +146,32 @@ class ZookeeperServiceProxy(ServiceProxy):
         return attribute
 
 
-class ZookeeperServiceProxyPool(QueuePool):
-    """Zookeeper service proxy pool.
+class BasicServiceProxyPool(QueuePool):
+    """Basic service proxy pool.
     
-    Creates a queue of ZookeeperServiceProxy objects for use across threads / greenlets.
+    Creates a queue of BasicServiceProxy objects for use across threads / greenlets
+    depending on the chosen queue_class.
 
     Example usage:
         with pool.get() as service:
             service.getVersion(RequestContext())
     """
     
-    def __init__(self, zookeeper_client, service_name, size,
+    def __init__(self, service_name, service_hostname, service_port, size,
             service_class=None, queue_class=None,
             transport_class=None, protocol_class=None,
             keepalive=False, is_gevent=False):
-        """ZookeeperServiceProxyPool constructor.
+        """BasicServiceProxyPool constructor.
 
         Args:
-            zookeeper_client: Zookeeper client object.
             service_name: Service name, i.e. chatsvc
-            size: Number of ZookeeperSessionStore objects to include in pool.
+            service_hostname: Service hostname
+            service_port: Service port
             service_class: Optional service class, i.e. TChatService.
                 If not provided, TRService will be used which will
                 only provide proxying to the service methods defined
                 within TRService.
+            size: Number of ZookeeperSessionStore objects to include in pool.
             queue_class: Optional queue class. If not provided, will
                 default to Queue.Queue or gevent.queue.Queue depending
                 on the value of is_gevent. The specified class must
@@ -299,8 +193,9 @@ class ZookeeperServiceProxyPool(QueuePool):
                 compatability, and an appropriate queue class will
                 be used.
         """
-        self.zookeeper_client = zookeeper_client
         self.service_name = service_name
+        self.service_hostname = service_hostname
+        self.service_port = service_port
         self.size = size
         self.service_class = service_class
         self.queue_class = queue_class
@@ -316,17 +211,17 @@ class ZookeeperServiceProxyPool(QueuePool):
             else:
                 import Queue
                 self.queue_class = Queue.Queue
-
-        super(ZookeeperServiceProxyPool, self).__init__(
+        super(BasicServiceProxyPool, self).__init__(
                 self.size,
                 factory=self,
                 queue_class=self.queue_class)
     
     def create(self):
-        """ZookeeperServiceProxy factory method."""
-        return ZookeeperServiceProxy(
-                self.zookeeper_client,
+        """BasicServiceProxy factory method."""
+        return BasicServiceProxy(
                 self.service_name,
+                self.service_hostname,
+                self.service_port,
                 service_class=self.service_class,
                 transport_class=self.transport_class,
                 protocol_class=self.protocol_class,
