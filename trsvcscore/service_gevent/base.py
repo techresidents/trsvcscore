@@ -4,6 +4,7 @@ import gevent
 from thrift.transport import TTransport
 from thrift.protocol import TBinaryProtocol
 
+from tridlcore.gen.ttypes import ServiceStatus
 from trpycore.greenlet.util import join
 from trpycore.thrift_gevent.server import TGeventServer
 from trpycore.thrift_gevent.transport import TSocket
@@ -36,6 +37,7 @@ class GService(object):
         self.protocol_factory = protocol_factory or TBinaryProtocol.TBinaryProtocolFactory()
         self.greenlet = None
         self.running = False
+        self.status = ServiceStatus.STOPPED
         
         #Inject service into handler
         self.handler.service = self
@@ -43,11 +45,16 @@ class GService(object):
     def start(self):
         """Start service."""
         if not self.running:
+            self.status = ServiceStatus.STARTING
             self.running = True
             self.greenlet = gevent.spawn(self.run)
             self.handler.start()
     
     def run(self):
+        self.status = ServiceStatus.ALIVE
+        
+        errors = 0
+
         while self.running:
             try:
                 server = TGeventServer(self.processor, self.transport, self.transport_factory, self.protocol_factory)
@@ -55,13 +62,23 @@ class GService(object):
 
             except Exception as error:
                 logging.exception(error)
+                
+                errors += 1
+                if errors >= 10:
+                    logging.error("Halting service (errors >= %s)" % errors)
+                    self.status = ServiceStatus.DEAD
 
             except gevent.GreenletExit:
                 break
+        
+        #Set status to STOPPED if it's not DEAD
+        if self.status != ServiceStatus.DEAD:
+            self.status = ServiceStatus.STOPPED
     
     def stop(self):
         """Stop service."""
         if self.running:
+            self.status = ServiceStatus.STOPPING
             self.running = False
             self.handler.stop()
             if self.greenlet:
@@ -107,12 +124,14 @@ class GMongrel2Service(GService):
     def start(self):
         """Start service."""
         if not self.running:
+            self.status = ServiceStatus.STARTING
             super(GMongrel2Service, self).start()
             self.mongrel2_greenlet = gevent.spawn(self.run_mongrel2)
     
     def stop(self):
         """Stop service."""
         if self.running:
+            self.status = ServiceStatus.STOPPING
             if self.mongrel2_greenlet:
                 self.mongrel2_greenlet.kill()
             super(GMongrel2Service, self).stop()

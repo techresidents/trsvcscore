@@ -4,6 +4,7 @@ import re
 from tridlcore.gen import TRService
 from tridlcore.gen.ttypes import ServiceStatus
 
+from trpycore.counter.basic import BasicCounters
 from trpycore.mongrel2_common.request import SafeRequest
 from trpycore.zookeeper_gevent.client import GZookeeperClient
 from trsvcscore.http.error import HttpError
@@ -31,7 +32,7 @@ class GServiceHandler(TRService.Iface, object):
         self.version = version
         self.build = build
         self.options = {}
-        self.counters = {}
+        self.counters = BasicCounters(0)
         self.running = False
 
         #Zookeeper client
@@ -53,6 +54,48 @@ class GServiceHandler(TRService.Iface, object):
         
         #service will be injected by service prior to start()
         self.service = None
+        
+        #Add counter decorator to track service method calls
+        def counter_decorator(func):
+            requests_counter = self.counters.get_counter("requests")
+            open_requests_counter = self.counters.get_counter("open_requests")
+            def wrapper(*args, **kwargs):
+                try:
+                    requests_counter.increment()
+                    open_requests_counter.increment()
+                    return func(*args, **kwargs)
+                finally:
+                    open_requests_counter.decrement()
+            return wrapper
+        self._decorate_service_methods(counter_decorator)
+
+    def _decorate_service_methods(self, decorator, cls=None, decorated=None):
+        """Decorate service interface methods at runtime.
+
+        This method will decorate the service instance methods on the
+        current handler with the given decorator. Service interface
+        methods are identified as any callable on a base class
+        with the name "Iface".
+
+        This method should be used judicially to limit the magic.
+        The main advantage of this method is that decorators can
+        be added to all service methods from a base class,
+        without specific knowledge of each service's interface.
+
+        Derived classes should NOT add decorators using this method.
+        """
+        cls = cls or self.__class__
+        decorated = decorated if decorated is not None else {}
+
+        if cls.__name__ == "Iface":
+            for attribute_name in cls.__dict__:
+                attribute = getattr(self, attribute_name)
+                if callable(attribute) and attribute_name not in decorated:
+                    setattr(self, attribute_name, decorator(attribute))
+                    decorated[attribute_name] = True
+        
+        for base_class in cls.__bases__:
+            self._decorate_service_methods(decorator, base_class, decorated)
 
     def start(self):
         """Start service handler."""
@@ -154,7 +197,7 @@ class GServiceHandler(TRService.Iface, object):
         Returns:
             Dict of service specific counters.
         """
-        return self.counters
+        return self.counters.as_dict()
 
     def getOption(self, requestContext, key):
         """Get service option.

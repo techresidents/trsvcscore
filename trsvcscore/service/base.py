@@ -1,11 +1,10 @@
 import logging
 import threading
-import time
 
-from thrift import Thrift
 from thrift.transport import TTransport, TSocket
 from thrift.protocol import TBinaryProtocol
 
+from tridlcore.gen.ttypes import ServiceStatus
 from trpycore.thrift.server import TThreadPoolServer
 from trpycore.thread.util import join
 
@@ -43,6 +42,7 @@ class Service(threading.Thread):
         self.protocol_factory = protocol_factory or TBinaryProtocol.TBinaryProtocolFactory()
         self.running = False
         self.server = None
+        self.status = ServiceStatus.STOPPED
         
         #Inject service into handler
         self.handler.service = self
@@ -55,6 +55,8 @@ class Service(threading.Thread):
         in a daemon thread which will not prevent the 
         service process from exiting.
         """
+
+        errors = 0
         while self.running:
             try:
                 #TODO replace TThreadPoolServer with a transport which
@@ -72,10 +74,16 @@ class Service(threading.Thread):
             except Exception as error:
                 logging.exception(error)
 
-    
+                errors += 1
+                if errors >= 10:
+                    self.status = ServiceStatus.DEAD
+                    logging.error("Halting server (errors >=  %s)" % error)
+                    break
+
     def start(self):
         """Start service."""
         if not self.running:
+            self.status = ServiceStatus.STARTING
             self.running = True
             self.handler.start()
             super(Service, self).start()
@@ -89,6 +97,8 @@ class Service(threading.Thread):
         thread.daemon = True
         thread.start()
         
+        self.status = ServiceStatus.ALIVE
+
         #Wait for stop
         while self.running:
             try:
@@ -96,6 +106,10 @@ class Service(threading.Thread):
 
             except Exception as error:
                 logging.exception(error)
+        
+        #Set service status to STOPPED as long as it's not DEAD
+        if self.status != ServiceStatus.DEAD:
+            self.status = ServiceStatus.STOPPED
 
     def join(self, timeout=None):
         join([self.handler, super(Service, self)], timeout)
@@ -103,6 +117,7 @@ class Service(threading.Thread):
     def stop(self):
         """Stop service."""
         if self.running:
+            self.status = ServiceStatus.STOPPING
             self.running = False
             self.handler.stop()
 
