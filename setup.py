@@ -17,7 +17,7 @@ setup(
     version = '0.7-SNAPSHOT',
     author = 'Tech Residents, Inc.',
     packages = find_packages(),
-    license = 'LICENSE',
+    license = open('LICENSE').read(),
     description = 'Tech Residents Services Core Library',
     long_description = open('README').read(),
 )
