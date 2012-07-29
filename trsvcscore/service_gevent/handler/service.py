@@ -1,16 +1,16 @@
-import logging
-
 from tridlcore.gen import TRService
+from tridlcore.gen.ttypes import ServiceStatus
 
-from trpycore.counter.atomic import AtomicCounters
-from trpycore.zookeeper.client import ZookeeperClient
+from trpycore.counter.basic import BasicCounters
+from trpycore.zookeeper_gevent.client import GZookeeperClient
 from trsvcscore.registrar.zookeeper import ZookeeperServiceRegistrar
+from trsvcscore.service.handler.base import Handler
 
 
-class ServiceHandler(TRService.Iface, object):
-    """Base class for service handler."""
+class GServiceHandler(TRService.Iface, Handler):
+    """Base class for gevent service handler."""
 
-    def __init__(self, name, interface, port, version, build, zookeeper_hosts, database_connection=None):
+    def __init__(self, service, zookeeper_hosts, database_connection=None):
         """GServiceHandler constructor.
 
         Args:
@@ -22,20 +22,18 @@ class ServiceHandler(TRService.Iface, object):
             zookeeper_hosts: list of zookeeper hosts, i.e. ["localhost:2181", "localdev:2181"]
             database_connection: optional database connection string
         """
-        self.name = name
-        self.interface = interface
-        self.port = port
-        self.version = version
-        self.build = build
+        self.service = service
         self.options = {}
-        self.counters = AtomicCounters()
+        self.counters = BasicCounters(0)
         self.running = False
 
         #Zookeeper client
-        self.zookeeper_client = ZookeeperClient(zookeeper_hosts)
+        self.zookeeper_client = GZookeeperClient(zookeeper_hosts)
 
         #Database session factory
         if database_connection:
+            #Make psycogp2 driver compatible with gevent
+            from trpycore import psycopg2_gevent
             from sqlalchemy import create_engine
             from sqlalchemy.orm import sessionmaker
             engine = create_engine(database_connection)
@@ -46,9 +44,6 @@ class ServiceHandler(TRService.Iface, object):
         #Registrar
         self.registrar = ZookeeperServiceRegistrar(self.zookeeper_client)
         
-        #service will be injected by service prior to start()
-        self.service = None
-
         #Add counter decorator to track service method calls
         def counter_decorator(func):
             requests_counter = self.counters.get_counter("requests")
@@ -96,9 +91,9 @@ class ServiceHandler(TRService.Iface, object):
         if not self.running:
             self.running = True
             self.zookeeper_client.start()
-            self.registrar.register_service(self.name, self.port)
+            self.registrar.register_service(self.service)
     
-    def join(self, timeout):
+    def join(self, timeout=None):
         """Join service handler."""
         self.zookeeper_client.join(timeout)
     
@@ -130,7 +125,7 @@ class ServiceHandler(TRService.Iface, object):
         Returns:
             service name (string)
         """
-        return self.name
+        return self.service.name()
 
     def getVersion(self, requestContext):
         """Get service version.
@@ -141,7 +136,7 @@ class ServiceHandler(TRService.Iface, object):
         Returns:
             service version (string)
         """
-        return self.version or "Unknown"
+        return self.service.version()
 
     def getBuildNumber(self, requestContext):
         """Get service build number.
@@ -152,7 +147,7 @@ class ServiceHandler(TRService.Iface, object):
         Returns:
             service build number (string)
         """
-        return self.build or "Unknown"
+        return self.service.build()
 
     def getStatus(self, requestContext):
         """Get service status.
@@ -163,7 +158,10 @@ class ServiceHandler(TRService.Iface, object):
         Returns:
             ServiceStatus constant
         """
-        return self.service.status
+        if self.running:
+            return ServiceStatus.ALIVE
+        else:
+            return ServiceStatus.DEAD
 
     def getStatusDetails(self, requestContext):
         """Get service status details.

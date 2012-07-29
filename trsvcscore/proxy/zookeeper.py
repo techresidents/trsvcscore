@@ -7,6 +7,7 @@ from trpycore.zookeeper_gevent.watch import GChildrenWatch
 from trpycore.zookeeper.watch import ChildrenWatch
 from trsvcscore.registrar.zookeeper import ZookeeperServiceRegistrar
 from trsvcscore.proxy.base import ServiceProxyException, ServiceProxy
+from trsvcscore.service.server.base import ServerProtocol, ServerTransport
 
 class ZookeeperServiceProxy(ServiceProxy):
     """Zookeeper based service proxy.
@@ -172,22 +173,25 @@ class ZookeeperServiceProxy(ServiceProxy):
             (Zookeeper node, Service, Transport) tuple if service is available,
             otherwise (None, None, None).
         """
-
         result = (None, None, None)
         
         #Locate an available service instance in the registrar
-        path, registration = self.registrar.locate_zookeeper_service(self.service_name)
+        path, service_info = self.registrar.locate_zookeeper_service(self.service_name)
 
         #If a service instance is available, create the object and stage
         #it to be swapped in on the next user invocation.
-        if path and registration:
-            node = os.path.basename(path)
-            transport = self.transport_class(registration.hostname, registration.port)
-            protocol = self.protocol_class(transport)
-            service = self.service_class.Client(protocol)
+        if path and service_info:
+            for server in service_info.servers:
+                for endpoint in server.endpoints:
+                    if endpoint.protocol ==  ServerProtocol.THRIFT and \
+                            endpoint.transport == ServerTransport.TCP:
+                        node = os.path.basename(path)
+                        transport = self.transport_class(endpoint.address, endpoint.port)
+                        protocol = self.protocol_class(transport)
+                        service = self.service_class.Client(protocol)
 
-            result = (node, service, transport)
-
+                        result = (node, service, transport)
+                        return result
         return result
 
     def _get_service_method_wrapper(self, method):

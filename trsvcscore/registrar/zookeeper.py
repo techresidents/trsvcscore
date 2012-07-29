@@ -5,7 +5,8 @@ import random
 import socket
 import Queue
 
-from trsvcscore.registrar.base import ServiceRegistrar, ServiceRegistration, ServiceRegistrationEncoder
+from trsvcscore.registrar.base import ServiceRegistrar
+from trsvcscore.service.base import ServiceInfo
 
 class ZookeeperServiceRegistrar(ServiceRegistrar):
     """Zookeeper service registrar."""
@@ -30,31 +31,32 @@ class ZookeeperServiceRegistrar(ServiceRegistrar):
         """
         if event.state_name == "CONNECTED_STATE":
             while not self.registration_queue.empty():
-                registration = self.registration_queue.get()
+                service = self.registration_queue.get()
                 try:
-                    self._register(registration)
+                    self._register(service)
                 except Exception as error:
-                    self.log.error("Registration for %s failed" % (registration.name))
+                    self.log.error("Registration for %s failed" % (service.name()))
                     self.log.exception(error)
 
-    def _register(self, registration):
+    def _register(self, service):
         """Register service with zookeeper."""
         if not self.zookeeper_client.connected:
             raise RuntimeError("Zookeeper client not connected")
-
-        service_path = os.path.join("/services", registration.name, "registry")
-        service_node = os.path.join(service_path, registration.name)
+        
+        service_info = service.info()
+        service_path = os.path.join("/services", service_info.name, "registry")
+        service_node = os.path.join(service_path, service_info.name)
         
         self.zookeeper_client.create_path(service_path)
         self.zookeeper_client.create(
                 service_node,
-                json.dumps(registration, cls=ServiceRegistrationEncoder),
+                json.dumps(service_info.to_json()),
                 sequence=True,
                 ephemeral=True)
         
-        self.log.info("Registration for %s completed" % (registration.name))
+        self.log.info("Registration for %s completed" % (service_info.name))
 
-    def register_service(self, service_name, service_port):
+    def register_service(self, service):
         """Register a service with the registrar.
 
         If zookeeper connection is unavailable when this method is invoked,
@@ -63,20 +65,15 @@ class ZookeeperServiceRegistrar(ServiceRegistrar):
         connection is reestablished, the service will be registered.
 
         Args
-            service_name: service name, i.e., chatsvc
-            service_port: service port.
+            service: Service object
         """
-        if service_name is None or service_port is None:
-            raise ValueError("service_name and service_port required for registration")
-
-        registration = ServiceRegistration(service_name, service_port)
-
         try:
-            self._register(registration)
+            self._register(service)
 
         except Exception as error:
-            self.log.warning("Registartion for %s deferred: %s" % (service_name, str(error)))
-            self.registration_queue.put(registration)
+            service_info = service.info()
+            self.log.warning("Registartion for %s deferred: %s" % (service_info.name, str(error)))
+            self.registration_queue.put(service)
 
     def locate_service(self, name, host_affinity=True):
         """Locate a random service instance.
@@ -98,7 +95,7 @@ class ZookeeperServiceRegistrar(ServiceRegistrar):
             for child in self.zookeeper_client.get_children(path):
                 service_node = os.path.join(path, child)
                 data, stat = self.zookeeper_client.get_data(service_node)
-                services.append(ServiceRegistration.from_json(data))
+                services.append(ServiceInfo.from_json(data))
             
             if services:
                 #If host affinity is set try to find a service on this host
@@ -142,7 +139,7 @@ class ZookeeperServiceRegistrar(ServiceRegistrar):
             for child in self.zookeeper_client.get_children(path):
                 service_node = os.path.join(path, child)
                 data, stat = self.zookeeper_client.get_data(service_node)
-                services[os.path.join(path, child)] = ServiceRegistration.from_json(data)
+                services[os.path.join(path, child)] = ServiceInfo.from_json(data)
             
             if services:
                 #If host affinity is set try to find a service on this host
@@ -178,7 +175,7 @@ class ZookeeperServiceRegistrar(ServiceRegistrar):
             for child in self.zookeeper_client.get_children(path):
                 service_node = os.path.join(path, child)
                 data, stat = self.zookeeper_client.get_data(service_node)
-                result.append(ServiceRegistration.from_json(data))
+                result.append(ServiceInfo.from_json(data))
         except Exception as error:                    
             self.log.exception(error)
 
