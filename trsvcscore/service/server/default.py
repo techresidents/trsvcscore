@@ -1,4 +1,5 @@
 import logging
+import socket
 import threading
 
 from thrift.transport import TTransport, TSocket
@@ -7,8 +8,9 @@ from thrift.protocol import TBinaryProtocol
 from tridlcore.gen.ttypes import ServiceStatus
 from trpycore.thrift.server import TThreadPoolServer
 from trpycore.thread.util import join
+from trsvcscore.service.server.base import Server, ServerInfo, ServerEndpoint, ServerProtocol, ServerTransport
 
-class ThriftServer(threading.Thread):
+class ThriftServer(Server):
     """Base class for services"""
     def __init__(self, name, interface, port, handler, processor, threads=5,
             transport=None, transport_factory=None, protocol_factory=None):
@@ -29,7 +31,7 @@ class ThriftServer(threading.Thread):
             transport_factory: optional Thrift transport factory
             protocol_factory: optional Thrift protocol factory
         """
-        super(Service, self).__init__()
+        super(ThriftServer, self).__init__()
         
         self.name = name
         self.interface = interface
@@ -42,10 +44,9 @@ class ThriftServer(threading.Thread):
         self.protocol_factory = protocol_factory or TBinaryProtocol.TBinaryProtocolFactory()
         self.running = False
         self.server = None
-        self.status = ServiceStatus.STOPPED
-        
-        #Inject service into handler
-        self.handler.service = self
+        self._status = ServiceStatus.STOPPED
+
+        self.thread = threading.Thread(target=self.run)
     
     def _run_server(self):
         """Run thrift server.
@@ -76,20 +77,20 @@ class ThriftServer(threading.Thread):
 
                 errors += 1
                 if errors >= 10:
-                    self.status = ServiceStatus.DEAD
+                    self._status = ServiceStatus.DEAD
                     logging.error("Halting server (errors >=  %s)" % error)
                     break
 
     def start(self):
-        """Start service."""
+        """Start server."""
         if not self.running:
-            self.status = ServiceStatus.STARTING
+            self._status = ServiceStatus.STARTING
             self.running = True
             self.handler.start()
-            super(Service, self).start()
+            self.thread.start()
     
     def run(self):
-        """Run service."""
+        """Run server."""
         #Start thrift server in separate daemon thread
         #to allow service process to properly exit
         #following service.stop()
@@ -97,7 +98,7 @@ class ThriftServer(threading.Thread):
         thread.daemon = True
         thread.start()
         
-        self.status = ServiceStatus.ALIVE
+        self._status = ServiceStatus.ALIVE
 
         #Wait for stop
         while self.running:
@@ -108,16 +109,16 @@ class ThriftServer(threading.Thread):
                 logging.exception(error)
         
         #Set service status to STOPPED as long as it's not DEAD
-        if self.status != ServiceStatus.DEAD:
-            self.status = ServiceStatus.STOPPED
+        if self._status != ServiceStatus.DEAD:
+            self._status = ServiceStatus.STOPPED
 
     def join(self, timeout=None):
-        join([self.handler, super(Service, self)], timeout)
+        join([self.handler, self.thread], timeout)
 
     def stop(self):
-        """Stop service."""
+        """Stop server."""
         if self.running:
-            self.status = ServiceStatus.STOPPING
+            self._status = ServiceStatus.STOPPING
             self.running = False
             self.handler.stop()
 
@@ -126,3 +127,15 @@ class ThriftServer(threading.Thread):
             #manner. Additionally, it will not unblock
             #server.serve().
             self.server.stop()
+
+    def status(self):
+        return self._status
+
+    def info(self):
+        endpoint = ServerEndpoint(
+                address=socket.gethostname(),
+                port=self.port,
+                protocol=ServerProtocol.THRIFT,
+                transport=ServerTransport.TCP)
+        
+        return ServerInfo([endpoint])

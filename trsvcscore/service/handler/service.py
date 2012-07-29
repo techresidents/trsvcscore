@@ -90,7 +90,7 @@ class ServiceHandler(TRService.Iface, Handler):
         if not self.running:
             self.running = True
             self.zookeeper_client.start()
-            self.registrar.register_service(self.name, self.port)
+            self.registrar.register_service(self.service)
     
     def join(self, timeout):
         """Join service handler."""
