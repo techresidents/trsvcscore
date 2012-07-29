@@ -11,7 +11,7 @@ from trsvcscore.service.handler.base import Handler
 class ServiceHandler(TRService.Iface, Handler):
     """Base class for service handler."""
 
-    def __init__(self, name, interface, port, version, build, zookeeper_hosts, database_connection=None):
+    def __init__(self, service, zookeeper_hosts, database_connection=None):
         """GServiceHandler constructor.
 
         Args:
@@ -23,11 +23,7 @@ class ServiceHandler(TRService.Iface, Handler):
             zookeeper_hosts: list of zookeeper hosts, i.e. ["localhost:2181", "localdev:2181"]
             database_connection: optional database connection string
         """
-        self.name = name
-        self.interface = interface
-        self.port = port
-        self.version = version
-        self.build = build
+        self.service = service
         self.options = {}
         self.counters = AtomicCounters()
         self.running = False
@@ -47,9 +43,6 @@ class ServiceHandler(TRService.Iface, Handler):
         #Registrar
         self.registrar = ZookeeperServiceRegistrar(self.zookeeper_client)
         
-        #service will be injected by service prior to start()
-        self.service = None
-
         #Add counter decorator to track service method calls
         def counter_decorator(func):
             requests_counter = self.counters.get_counter("requests")
@@ -131,7 +124,7 @@ class ServiceHandler(TRService.Iface, Handler):
         Returns:
             service name (string)
         """
-        return self.name
+        return self.service.name()
 
     def getVersion(self, requestContext):
         """Get service version.
@@ -142,7 +135,7 @@ class ServiceHandler(TRService.Iface, Handler):
         Returns:
             service version (string)
         """
-        return self.version or "Unknown"
+        return self.service.version()
 
     def getBuildNumber(self, requestContext):
         """Get service build number.
@@ -153,7 +146,7 @@ class ServiceHandler(TRService.Iface, Handler):
         Returns:
             service build number (string)
         """
-        return self.build or "Unknown"
+        return self.service.build()
 
     def getStatus(self, requestContext):
         """Get service status.
@@ -164,7 +157,7 @@ class ServiceHandler(TRService.Iface, Handler):
         Returns:
             ServiceStatus constant
         """
-        return self.service.status
+        return self.service.status()
 
     def getStatusDetails(self, requestContext):
         """Get service status details.
