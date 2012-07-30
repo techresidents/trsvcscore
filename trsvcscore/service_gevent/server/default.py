@@ -82,8 +82,7 @@ class GThriftServer(Server):
             self._status = Status.STOPPING
             self.running = False
             self.handler.stop()
-            if self.greenlet:
-                self.greenlet.kill()
+            self.greenlet.kill()
     
     def join(self, timeout=None):
         """Join server.
@@ -96,10 +95,7 @@ class GThriftServer(Server):
                 If timeout is specified, the status() method must be called
                 to determine if the service is still running.
         """
-        if self.greenlet:
-            join([self.handler, self.greenlet], timeout)
-        else:
-            self.handler.join(timeout)
+        join([self.handler, self.greenlet], timeout)
     
     def status(self):
         """Get server status.

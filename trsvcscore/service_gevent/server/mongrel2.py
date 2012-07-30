@@ -40,8 +40,7 @@ class GMongrel2Server(Server):
         if self.running:
             self.running = False
             self._status = Status.STOPPING
-            if self.greenlet:
-                self.greenlet.kill()
+            self.greenlet.kill()
 
     def join(self, timeout=None):
         """Join the server.
@@ -54,8 +53,7 @@ class GMongrel2Server(Server):
                 If timeout is specified, the status() method must be called
                 to determine if the service is still running.
         """
-        if self.greenlet:
-            self.greenlet.join(timeout)
+        self.greenlet.join(timeout)
     
     def run(self):
         """Run server."""
