@@ -11,13 +11,13 @@ from trpycore.thread.util import join
 from trsvcscore.service.server.base import Server, ServerInfo, ServerEndpoint, ServerProtocol, ServerTransport
 
 class ThriftServer(Server):
-    """Base class for services"""
+    """Thrift based server."""
     def __init__(self, name, interface, port, handler, processor, threads=5,
             transport=None, transport_factory=None, protocol_factory=None):
-        """Service constructor.
+        """ThriftServer constructor.
 
         Args:
-            name: service name, i.e. chatsvc
+            name: server name, i.e. chatsvc-thrift
             interface: interface for server to listen on, 0.0.0.0 for all.
             port: service port
             handler: ServiceHandler handler instance
@@ -113,6 +113,16 @@ class ThriftServer(Server):
             self._status = ServiceStatus.STOPPED
 
     def join(self, timeout=None):
+        """Join the server.
+
+        Join the server, waiting for the completion of all threads 
+        or greenlets.
+
+        Args:
+            timeout: Optional timeout in seconds to observe before returning.
+                If timeout is specified, the status() method must be called
+                to determine if the service is still running.
+        """
         join([self.handler, self.thread], timeout)
 
     def stop(self):
@@ -129,13 +139,23 @@ class ThriftServer(Server):
             self.server.stop()
 
     def status(self):
+        """Get server status.
+
+        Returns:
+            Status enum.
+        """
         return self._status
 
     def info(self):
+        """Get server info.
+
+        Returns:
+            ServerInfo object.
+        """
         endpoint = ServerEndpoint(
                 address=socket.gethostname(),
                 port=self.port,
                 protocol=ServerProtocol.THRIFT,
                 transport=ServerTransport.TCP)
         
-        return ServerInfo([endpoint])
+        return ServerInfo(self.name, [endpoint])

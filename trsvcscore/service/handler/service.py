@@ -1,6 +1,7 @@
 import logging
 
 from tridlcore.gen import TRService
+from tridlcore.gen.ttypes import ServiceStatus
 
 from trpycore.counter.atomic import AtomicCounters
 from trpycore.zookeeper.client import ZookeeperClient
@@ -9,17 +10,17 @@ from trsvcscore.service.handler.base import Handler
 
 
 class ServiceHandler(TRService.Iface, Handler):
-    """Base class for service handler."""
+    """Service handler base class.
+    
+    This class is intended to be subclassed by concrete
+    service handlers.
+    """
 
     def __init__(self, service, zookeeper_hosts, database_connection=None):
-        """GServiceHandler constructor.
+        """ServiceHandler constructor.
 
         Args:
-            name: service name, i.e. chatsvc
-            interface: interface service is listening on, 0.0.0.0 for all.
-            port: service port
-            version: service version (string)
-            build: service build number (string)
+            service: Service object
             zookeeper_hosts: list of zookeeper hosts, i.e. ["localhost:2181", "localdev:2181"]
             database_connection: optional database connection string
         """
@@ -93,7 +94,16 @@ class ServiceHandler(TRService.Iface, Handler):
             self.registrar.register_service(self.service)
     
     def join(self, timeout):
-        """Join service handler."""
+        """Join service handler.
+
+        Join the handler, waiting for the completion of all threads 
+        or greenlets.
+
+        Args:
+            timeout: Optional timeout in seconds to observe before returning.
+                If timeout is specified, the status() method must be called
+                to determine if the handler is still running.
+        """
         self.zookeeper_client.join(timeout)
     
     def stop(self):
@@ -101,6 +111,16 @@ class ServiceHandler(TRService.Iface, Handler):
         if self.running:
             self.running = False
             self.zookeeper_client.stop()
+
+    def status(self):
+        """Get the handler status.
+
+        Returns Status enum.
+        """
+        if self.running:
+            return ServiceStatus.ALIVE
+        else:
+            return ServiceStatus.STOPPED
 
     def get_database_session(self):
         """Return new database SQLAlchemy database session.

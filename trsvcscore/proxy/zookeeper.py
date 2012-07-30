@@ -181,6 +181,7 @@ class ZookeeperServiceProxy(ServiceProxy):
         #If a service instance is available, create the object and stage
         #it to be swapped in on the next user invocation.
         if path and service_info:
+            #Find the TCP/THRIFT server and corresponding endpoint
             for server in service_info.servers:
                 for endpoint in server.endpoints:
                     if endpoint.protocol ==  ServerProtocol.THRIFT and \

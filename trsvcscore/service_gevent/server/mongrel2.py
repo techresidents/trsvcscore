@@ -7,18 +7,19 @@ from trpycore.mongrel2_gevent.handler import GConnection
 from trsvcscore.service.server.base import Server, ServerInfo
 
 class GMongrel2Server(Server):
-    """Base class for gevent Mongrel2 services."""
+    """Greenlet Mongrel2 server."""
 
-    def __init__(self, mongrel2_sender_id,
+    def __init__(self, name, mongrel2_sender_id,
             mongrel2_pull_addr, mongrel2_pub_addr, handler):
         """GMongrel2Service constructor.
         Args:
+            name: server name, i.e. chatsvc-mongrel
             mongrel2_sender_id: unique mongrel2 sender id (must be unique)
             mongrel2_pull_addr: zeromq style pull address
             mongrel2_pub_addr: zeromq style pub address
             handler: GServiceHandler handler instance
         """
-
+        self.name = name
         self.mongrel2_sender_id = mongrel2_sender_id
         self.mongrel2_pull_addr = mongrel2_pull_addr
         self.mongrel2_pub_addr = mongrel2_pub_addr
@@ -28,14 +29,14 @@ class GMongrel2Server(Server):
         self.greenlet = None
 
     def start(self):
-        """Start service."""
+        """Start server."""
         if not self.running:
             self.running = True
             self._status = ServiceStatus.STARTING
             self.greenlet = gevent.spawn(self.run)
     
     def stop(self):
-        """Stop service."""
+        """Stop server."""
         if self.running:
             self.running = False
             self._status = ServiceStatus.STOPPING
@@ -43,11 +44,21 @@ class GMongrel2Server(Server):
                 self.greenlet.kill()
 
     def join(self, timeout=None):
-        """Join service."""
+        """Join the server.
+
+        Join the server, waiting for the completion of all threads 
+        or greenlets.
+
+        Args:
+            timeout: Optional timeout in seconds to observe before returning.
+                If timeout is specified, the status() method must be called
+                to determine if the service is still running.
+        """
         if self.greenlet:
             self.greenlet.join(timeout)
     
     def run(self):
+        """Run server."""
         self._status = ServiceStatus.ALIVE
 
         connection = GConnection(
@@ -70,8 +81,18 @@ class GMongrel2Server(Server):
         self._status = ServiceStatus.STOPPED
 
     def status(self):
+        """Get server status.
+
+        Returns:
+            Status enum.
+        """
         return self._status
 
     def info(self):
+        """Get server info.
+
+        Returns:
+            ServerInfo object.
+        """
         endpoints = []
-        return ServerInfo(endpoints)
+        return ServerInfo(self.name, endpoints)

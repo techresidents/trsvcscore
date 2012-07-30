@@ -8,8 +8,27 @@ class ServiceRegistrar(object):
     def register_service(self, service):
         """Register a service with the registrar.
         
+        Register a service with the registrar. Failed registrations,
+        due to connectivity issues, will be deferred and automatically
+        retried upon connection reestablishment.
+        
         Args
             service: Service object
+        Returns: True if service was registered, False if registration
+            was deferred.
+        """
+        return
+
+    @abc.abstractmethod
+    def unregister_service(self):
+        """Unregister a previously registered service with the registrar.
+
+        Unegister a service with the registrar. Failed registrations,
+        due to connectivity issues, will be deferred and automatically
+        retried upon connection reestablishment.
+
+        Returns: True if service was unregistered, False if unregistration
+            was deferred.
         """
         return
 
@@ -24,7 +43,7 @@ class ServiceRegistrar(object):
                 instance will be selected randomly.
         
         Returns:
-            ServiceRegistration instance if service is located, None otherwise.
+            ServiceInfo object if service is located, None otherwise.
         """
         return
     
@@ -36,6 +55,6 @@ class ServiceRegistrar(object):
             name: service name
         
         Returns:
-            list of ServiceRegistration objects for found services.
+            list of ServiceInfo objects for found services.
         """
         return

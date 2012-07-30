@@ -14,13 +14,13 @@ from trpycore.thrift_gevent.transport import TSocket
 from trsvcscore.service.server.base import Server, ServerInfo, ServerEndpoint, ServerProtocol, ServerTransport
 
 class GThriftServer(Server):
-    """Base class for gevent services"""
+    """Gevent Thrift Server."""
     def __init__(self, name, interface, port, handler, processor,
             transport=None, transport_factory=None, protocol_factory=None):
-        """GService constructor.
+        """GThriftServer constructor.
 
         Args:
-            name: service name, i.e. chatsvc
+            name: server name, i.e. chatsvc-thrift
             interface: interface for server to listen on, 0.0.0.0 for all.
             port: service port
             handler: GServiceHandler handler instance
@@ -43,7 +43,7 @@ class GThriftServer(Server):
         self._status = ServiceStatus.STOPPED
     
     def start(self):
-        """Start service."""
+        """Start server."""
         if not self.running:
             self._status = ServiceStatus.STARTING
             self.running = True
@@ -51,6 +51,7 @@ class GThriftServer(Server):
             self.handler.start()
     
     def run(self):
+        """Run server."""
         self._status = ServiceStatus.ALIVE
         
         errors = 0
@@ -76,7 +77,7 @@ class GThriftServer(Server):
             self._status = ServiceStatus.STOPPED
     
     def stop(self):
-        """Stop service."""
+        """Stop server."""
         if self.running:
             self._status = ServiceStatus.STOPPING
             self.running = False
@@ -85,20 +86,39 @@ class GThriftServer(Server):
                 self.greenlet.kill()
     
     def join(self, timeout=None):
-        """Join service."""
+        """Join server.
+
+        Join the server, waiting for the completion of all threads 
+        or greenlets.
+
+        Args:
+            timeout: Optional timeout in seconds to observe before returning.
+                If timeout is specified, the status() method must be called
+                to determine if the service is still running.
+        """
         if self.greenlet:
             join([self.handler, self.greenlet], timeout)
         else:
             self.handler.join(timeout)
     
     def status(self):
+        """Get server status.
+
+        Returns:
+            Status enum.
+        """
         return self._status
 
     def info(self):
+        """Get server info.
+
+        Returns:
+            ServerInfo object.
+        """
         endpoint = ServerEndpoint(
                 address=socket.gethostname(),
                 port=self.port,
                 protocol=ServerProtocol.THRIFT,
                 transport=ServerTransport.TCP)
         
-        return ServerInfo([endpoint])
+        return ServerInfo(self.name, [endpoint])

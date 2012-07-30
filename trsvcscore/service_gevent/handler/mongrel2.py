@@ -1,12 +1,16 @@
 import logging
 import re
 
+from gevent.event import Event
+
+from tridlcore.gen.ttypes import ServiceStatus
+
 from trpycore.mongrel2_common.request import SafeRequest
 from trsvcscore.http.error import HttpError
 from trsvcscore.service.handler.base import Handler
 
 class GMongrel2Handler(Handler):
-    """Base class for Mongrel2 service handler.
+    """Gevent Mongrel2 handler.
        
      Incoming http requests will be delegated to method handlers
      based on a list of url_handlers. Each list entry will
@@ -50,7 +54,7 @@ class GMongrel2Handler(Handler):
             self.headers["content-type"] = "application/json"
 
 
-    def __init__(self, url_handlers=None, *args, **kwargs):
+    def __init__(self, url_handlers=None):
         """GMongrel2Handler constructor.
         
         Args:
@@ -77,21 +81,52 @@ class GMongrel2Handler(Handler):
 
             Additional arguments are identical to GServiceHandler.
         """
-        super(GMongrel2Handler, self).__init__(*args, **kwargs)
         self.url_handlers = []
+        self.running = False
+        self.stop_event = Event()
 
         #Compile url regular expressions
         for url_regex, handler_name in url_handlers or []:
             self.url_handlers.append((re.compile(url_regex), handler_name))
+
     
     def start(self):
-        return
+        """Start handler."""
+        if not self.running:
+            self.running = True
+            self.stop_event.clear()
 
     def stop(self):
-        return
+        """Stop handler."""
+        if self.running:
+            self.running = False
+            self.stop_event.set()
 
-    def join(self):
-        return
+    def join(self, timeout=None):
+        """Join the handler.
+
+        Join the handler, waiting for the completion of all threads 
+        or greenlets.
+
+        Args:
+            timeout: Optional timeout in seconds to observe before returning.
+                If timeout is specified, the status() method must be called
+                to determine if the handler is still running.
+        """
+        while self.running:
+            self.stop_event.wait(timeout)
+            if timeout is not None:
+                break
+
+    def status(self):
+        """Get the handler status.
+
+        Returns Status enum.
+        """
+        if self.running:
+            return ServiceStatus.ALIVE
+        else:
+            return ServiceStatus.STOPPED
 
     def handle(self, connection, unsafe_request):
         """Method will be invoked when a Mongrel2 request is received.
