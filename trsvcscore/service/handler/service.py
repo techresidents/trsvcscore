@@ -193,6 +193,21 @@ class ServiceHandler(TRService.Iface, Handler):
         else:
             return "Dead"
 
+    def getCounter(self, requestContext, key):
+        """Get service counter.
+
+        Args:
+            requestContext: RequestContext object containing user information.
+            key: counter name
+        
+        Returns:
+            counter value
+        """
+        if key in self.counters:
+            return self.counters[key]
+        else:
+            return -1
+
     def getCounters(self, requestContext):
         """Get service counters.
 
@@ -214,7 +229,10 @@ class ServiceHandler(TRService.Iface, Handler):
         Returns:
             String value for the option.
         """
-        return self.options[key]
+        if key in self.options:
+            return self.options[key]
+        else:
+            return "invalid option"
 
     def getOptions(self, requestContext):
         """Get all service options.
