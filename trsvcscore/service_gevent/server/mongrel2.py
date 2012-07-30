@@ -2,7 +2,7 @@ import logging
 
 import gevent
 
-from tridlcore.gen.ttypes import ServiceStatus
+from tridlcore.gen.ttypes import Status
 from trpycore.mongrel2_gevent.handler import GConnection
 from trsvcscore.service.server.base import Server, ServerInfo
 
@@ -25,21 +25,21 @@ class GMongrel2Server(Server):
         self.mongrel2_pub_addr = mongrel2_pub_addr
         self.handler = handler
         self.running = False
-        self._status = ServiceStatus.STOPPED
+        self._status = Status.STOPPED
         self.greenlet = None
 
     def start(self):
         """Start server."""
         if not self.running:
             self.running = True
-            self._status = ServiceStatus.STARTING
+            self._status = Status.STARTING
             self.greenlet = gevent.spawn(self.run)
     
     def stop(self):
         """Stop server."""
         if self.running:
             self.running = False
-            self._status = ServiceStatus.STOPPING
+            self._status = Status.STOPPING
             if self.greenlet:
                 self.greenlet.kill()
 
@@ -59,7 +59,7 @@ class GMongrel2Server(Server):
     
     def run(self):
         """Run server."""
-        self._status = ServiceStatus.ALIVE
+        self._status = Status.ALIVE
 
         connection = GConnection(
                 self.mongrel2_sender_id,
@@ -75,10 +75,10 @@ class GMongrel2Server(Server):
                 logging.exception(error)
 
             except gevent.GreenletExit:
-                self._status = ServiceStatus.STOPPED
+                self._status = Status.STOPPED
                 break
 
-        self._status = ServiceStatus.STOPPED
+        self._status = Status.STOPPED
 
     def status(self):
         """Get server status.

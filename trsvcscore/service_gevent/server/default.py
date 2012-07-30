@@ -7,7 +7,7 @@ from thrift import Thrift
 from thrift.transport import TTransport
 from thrift.protocol import TBinaryProtocol
 
-from tridlcore.gen.ttypes import ServiceStatus
+from tridlcore.gen.ttypes import Status
 from trpycore.greenlet.util import join
 from trpycore.thrift_gevent.server import TGeventServer
 from trpycore.thrift_gevent.transport import TSocket
@@ -40,19 +40,19 @@ class GThriftServer(Server):
         self.protocol_factory = protocol_factory or TBinaryProtocol.TBinaryProtocolFactory()
         self.greenlet = None
         self.running = False
-        self._status = ServiceStatus.STOPPED
+        self._status = Status.STOPPED
     
     def start(self):
         """Start server."""
         if not self.running:
-            self._status = ServiceStatus.STARTING
+            self._status = Status.STARTING
             self.running = True
             self.greenlet = gevent.spawn(self.run)
             self.handler.start()
     
     def run(self):
         """Run server."""
-        self._status = ServiceStatus.ALIVE
+        self._status = Status.ALIVE
         
         errors = 0
 
@@ -67,19 +67,19 @@ class GThriftServer(Server):
                 errors += 1
                 if errors >= 10:
                     logging.error("Halting service (errors >= %s)" % errors)
-                    self._status = ServiceStatus.DEAD
+                    self._status = Status.DEAD
 
             except gevent.GreenletExit:
                 break
         
         #Set status to STOPPED if it's not DEAD
-        if self._status != ServiceStatus.DEAD:
-            self._status = ServiceStatus.STOPPED
+        if self._status != Status.DEAD:
+            self._status = Status.STOPPED
     
     def stop(self):
         """Stop server."""
         if self.running:
-            self._status = ServiceStatus.STOPPING
+            self._status = Status.STOPPING
             self.running = False
             self.handler.stop()
             if self.greenlet:

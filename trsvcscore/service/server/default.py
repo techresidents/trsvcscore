@@ -5,7 +5,7 @@ import threading
 from thrift.transport import TTransport, TSocket
 from thrift.protocol import TBinaryProtocol
 
-from tridlcore.gen.ttypes import ServiceStatus
+from tridlcore.gen.ttypes import Status
 from trpycore.thrift.server import TThreadPoolServer
 from trpycore.thread.util import join
 from trsvcscore.service.server.base import Server, ServerInfo, ServerEndpoint, ServerProtocol, ServerTransport
@@ -44,7 +44,7 @@ class ThriftServer(Server):
         self.protocol_factory = protocol_factory or TBinaryProtocol.TBinaryProtocolFactory()
         self.running = False
         self.server = None
-        self._status = ServiceStatus.STOPPED
+        self._status = Status.STOPPED
 
         self.thread = threading.Thread(target=self.run)
     
@@ -77,14 +77,14 @@ class ThriftServer(Server):
 
                 errors += 1
                 if errors >= 10:
-                    self._status = ServiceStatus.DEAD
+                    self._status = Status.DEAD
                     logging.error("Halting server (errors >=  %s)" % error)
                     break
 
     def start(self):
         """Start server."""
         if not self.running:
-            self._status = ServiceStatus.STARTING
+            self._status = Status.STARTING
             self.running = True
             self.handler.start()
             self.thread.start()
@@ -98,7 +98,7 @@ class ThriftServer(Server):
         thread.daemon = True
         thread.start()
         
-        self._status = ServiceStatus.ALIVE
+        self._status = Status.ALIVE
 
         #Wait for stop
         while self.running:
@@ -109,8 +109,8 @@ class ThriftServer(Server):
                 logging.exception(error)
         
         #Set service status to STOPPED as long as it's not DEAD
-        if self._status != ServiceStatus.DEAD:
-            self._status = ServiceStatus.STOPPED
+        if self._status != Status.DEAD:
+            self._status = Status.STOPPED
 
     def join(self, timeout=None):
         """Join the server.
@@ -128,7 +128,7 @@ class ThriftServer(Server):
     def stop(self):
         """Stop server."""
         if self.running:
-            self._status = ServiceStatus.STOPPING
+            self._status = Status.STOPPING
             self.running = False
             self.handler.stop()
 

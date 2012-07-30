@@ -1,5 +1,5 @@
 from tridlcore.gen import TRService
-from tridlcore.gen.ttypes import ServiceStatus
+from tridlcore.gen.ttypes import Status
 
 from trpycore.counter.basic import BasicCounters
 from trpycore.zookeeper_gevent.client import GZookeeperClient
@@ -118,9 +118,9 @@ class GServiceHandler(TRService.Iface, Handler):
         Returns Status enum.
         """
         if self.running:
-            return ServiceStatus.ALIVE
+            return Status.ALIVE
         else:
-            return ServiceStatus.STOPPED
+            return Status.STOPPED
 
     def get_database_session(self):
         """Return new database SQLAlchemy database session.
@@ -175,7 +175,7 @@ class GServiceHandler(TRService.Iface, Handler):
             requestContext: RequestContext object containing user information.
         
         Returns:
-            ServiceStatus constant
+            Status constant
         """
         return self.service.status()
 
@@ -186,7 +186,7 @@ class GServiceHandler(TRService.Iface, Handler):
             requestContext: RequestContext object containing user information.
         
         Returns:
-            String description of the current ServiceStatus constant.
+            String description of the current Status constant.
         """
         if self.running:
             return "Alive and well"

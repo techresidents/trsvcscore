@@ -3,7 +3,7 @@ import re
 
 from gevent.event import Event
 
-from tridlcore.gen.ttypes import ServiceStatus
+from tridlcore.gen.ttypes import Status
 
 from trpycore.mongrel2_common.request import SafeRequest
 from trsvcscore.http.error import HttpError
@@ -124,9 +124,9 @@ class GMongrel2Handler(Handler):
         Returns Status enum.
         """
         if self.running:
-            return ServiceStatus.ALIVE
+            return Status.ALIVE
         else:
-            return ServiceStatus.STOPPED
+            return Status.STOPPED
 
     def handle(self, connection, unsafe_request):
         """Method will be invoked when a Mongrel2 request is received.
