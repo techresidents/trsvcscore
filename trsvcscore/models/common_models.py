@@ -56,7 +56,7 @@ class Organization(Base):
 class Tag(Base):
     __tablename__ = "tag"
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, unique=True)
     name = Column(String(100))
     concept_id = Column(Integer, ForeignKey("concept.id"))
 
