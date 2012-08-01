@@ -13,7 +13,8 @@ from trsvcscore.models.accounts_models import \
 
 from trsvcscore.models.chat_models import \
         Chat, ChatType, ChatSession, ChatUser, ChatFeedback, \
-        ChatMinute, ChatRegistration, ChatScheduleJob
+        ChatMinute, ChatRegistration, ChatScheduleJob, \
+	ChatPersistJob
 
 from trsvcscore.models.job_models import \
         JobLocationPreference, JobOrganizationPreference, \

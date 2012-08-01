@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, DECIMAL, Integer, DateTime, ForeignKey, String, Text
+from sqlalchemy import Boolean, Column, Float, Integer, DateTime, ForeignKey, String, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -121,7 +121,7 @@ class ChatPersistJob(Base):
     created = Column(DateTime, server_default=func.current_timestamp())
     start = Column(DateTime, nullable=True)
     end = Column(DateTime, nullable=True)
-    description = Column(String(1024), nullable=True)
+    owner = Column(String(1024), nullable=True)
 
     chat_session = relationship(ChatSession)
 
@@ -158,7 +158,7 @@ class ChatMessage(Base):
     chat_session_id = Column(Integer, ForeignKey("chat_session.id"))
     type_id = Column(Integer, ForeignKey("chat_message_type.id"))
     format_type_id = Column(Integer, ForeignKey("chat_message_format_type.id"))
-    timestamp = Column(DECIMAL)
+    timestamp = Column(Float)
     time = Column(DateTime)
     data = Column(Text)
 
