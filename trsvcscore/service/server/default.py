@@ -12,8 +12,9 @@ from trsvcscore.service.server.base import Server, ServerInfo, ServerEndpoint, S
 
 class ThriftServer(Server):
     """Thrift based server."""
-    def __init__(self, name, interface, port, handler, processor, threads=5,
-            transport=None, transport_factory=None, protocol_factory=None):
+    def __init__(self, name, interface, port, handler, processor,
+            threads=5, address=None, transport=None,
+            transport_factory=None, protocol_factory=None):
         """ThriftServer constructor.
 
         Args:
@@ -27,7 +28,11 @@ class ThriftServer(Server):
                 at a time, so set this accordingly. In the future this
                 should be enhanced to use a transport which  multiplex connections,
                 and dispatches requests (not connections) to workers.
-            transport: optional Thrift transport class
+            address: optional address to advertise in ServerInfo.
+                This may be a hostname, fqdn, or ip address. If no
+                address is provided, socket.gethostname() will
+                be used.
+            transport: optional Thrift server transport object
             transport_factory: optional Thrift transport factory
             protocol_factory: optional Thrift protocol factory
         """
@@ -39,6 +44,7 @@ class ThriftServer(Server):
         self.handler = handler
         self.processor = processor
         self.threads = threads
+        self.address = address or socket.gethostname()
         self.transport = transport or TSocket.TServerSocket(self.interface, self.port)
         self.transport_factory = transport_factory or TTransport.TBufferedTransportFactory()
         self.protocol_factory = protocol_factory or TBinaryProtocol.TBinaryProtocolFactory()
@@ -153,7 +159,7 @@ class ThriftServer(Server):
             ServerInfo object.
         """
         endpoint = ServerEndpoint(
-                address=socket.gethostname(),
+                address=self.address,
                 port=self.port,
                 protocol=ServerProtocol.THRIFT,
                 transport=ServerTransport.TCP)

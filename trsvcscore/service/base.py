@@ -1,7 +1,7 @@
 import abc
 import json
 
-from trsvcscore.service.server.base import ServerInfo
+from trsvcscore.service.server.base import ServerInfo, ServerProtocol, ServerTransport
 
 class ServiceInfo(object):
     """Service information class.
@@ -10,7 +10,7 @@ class ServiceInfo(object):
     as general information about each of its servers in the form
     ServerInfo objects.
     """
-    def __init__(self, name, version, build, hostname, fqdn, servers):
+    def __init__(self, name, version, build, hostname, fqdn, key, servers):
         """ServiceInfo constructor.
 
         Args:
@@ -20,14 +20,16 @@ class ServiceInfo(object):
             hostname: service hostname
             fqdn: service fully qualified domain name
             servers: list of ServerInfo objects
+            key: unique service key identifier
         """
         self.name = name
         self.version = version
         self.build = build
         self.hostname = hostname
         self.fqdn = fqdn
+        self.key = key
         self.servers = servers
-
+    
     @staticmethod
     def from_json(data):
         """Convert json data to ServiceInfo object.
@@ -51,9 +53,48 @@ class ServiceInfo(object):
                 json_dict["build"],
                 json_dict["hostname"],
                 json_dict["fqdn"],
+                json_dict["key"],
                 servers)
 
         return result
+ 
+    def __repr__(self):
+        return "%s(%s, %s, %s, %s, %s, %s, %r)" % (
+                self.__class__.__name__,
+                self.name,
+                self.version,
+                self.build,
+                self.hostname,
+                self.fqdn,
+                self.key,
+                self.servers)
+
+    def __str__(self):
+        default_endpoint = self.default_endpoint()
+        return "%s(name=%s, key=%s, default_endpoint=(%s, %s))" % (
+                self.__class__.__name__,
+                self.name,
+                self.key,
+                default_endpoint.address,
+                default_endpoint.port)
+
+    def default_endpoint(self):
+        """Get the default Thrift server endpoint.
+        
+        Finds and return the default TCP/Thrift endpoint
+        if it exists. This is the most common endpoint used
+        by services for communication, so this method
+        is provided as a convenience.
+
+        Returns:
+            ServerEndpoint object if it exists, None otherwise.
+        """
+        for server in self.servers:
+            for endpoint in server.endpoints:
+                if endpoint.protocol ==  ServerProtocol.THRIFT and \
+                        endpoint.transport == ServerTransport.TCP:
+                            return endpoint
+        return None
 
     def to_json(self):
         """Convert ServiceInfo object to json representation.
@@ -68,6 +109,7 @@ class ServiceInfo(object):
             "build": self.build,
             "hostname": self.hostname,
             "fqdn": self.fqdn,
+            "key": self.key,
             "servers": json_servers
         }
 

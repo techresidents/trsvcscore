@@ -18,7 +18,9 @@ class GServiceHandler(TRService.Iface, Handler):
         """GServiceHandler constructor.
 
         Args:
-            service: Service object
+            service: Service object. Note that this will not be fully initialized
+                until start() is called. It may be neccessary delay some handler
+                instantiation until then.
             zookeeper_hosts: list of zookeeper hosts, i.e. ["localhost:2181", "localdev:2181"]
             database_connection: optional database connection string
         """

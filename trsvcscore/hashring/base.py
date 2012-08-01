@@ -1,24 +1,25 @@
 import abc
-import hashlib
-import socket
 
 class ServiceHashringException(Exception):
     pass
 
 class ServiceHashringNode(object):
-    """Service hashring node class.
+    """Service hashring node class."""
 
-    """
-    def __init__(self, token, data=None):
+    def __init__(self, token, service_info, data=None):
+        """ServiceHashringNode constructor.
+
+        Args:
+            token: Hashring node token identifying the node's
+                position on the hashring.
+            service_info: ServiceInfo object identifying the service
+                occupying the node.
+            data: addtional dict of data stored at the node.
+        """
+
         self.token = token
+        self.service_info = service_info
         self.data = data or {}
-        
-        #Pull out required data fields for convenience
-        self.service_name = self.data.get("service_name", None)
-        self.service_port = self.data.get("service_port", None)
-        self.hostname = self.data.get("hostname", None)
-        self.fqdn = self.data.get("fqdn", None)
-        self.service_key = self.data.get("service_key", None)
 
     def __cmp__(self, other):
         if self.token < other.token:
@@ -30,6 +31,20 @@ class ServiceHashringNode(object):
     
     def __hash__(self):
         return self.token.__hash__()
+
+    def __repr__(self):
+        return "%s(%s, %r, %r)" % (
+                self.__class__.__name__,
+                self.token,
+                self.service_info,
+                self.data)
+
+    def __str__(self):
+        return "%s(%s, %s)" % (
+                self.__class__.__name__,
+                self.token,
+                self.service_info)
+
 
 class ServiceHashringEvent(object):
     """Service hashring event."""
@@ -54,6 +69,14 @@ class ServiceHashringEvent(object):
         self.current_hashring = current_hashring
         self.added_nodes = added_nodes
         self.removed_nodes = removed_nodes
+    
+    def __repr__(self):
+        return "%s(%r, %r, %r, %r %r)" % (
+                self.event_type,
+                self.previous_hashring,
+                self.current_hashring,
+                self.added_nodes,
+                self.removed_nodes)
 
 class ServiceHashring(object):
     """Consistent service hashring abstract base class.
@@ -85,12 +108,12 @@ class ServiceHashring(object):
 
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, service_name, service_port=None, positions=None, position_data=None):
+    def __init__(self, service_name, service=None, positions=None, position_data=None):
         """ServiceHashring constructor.
 
         Args:
             service_name: service name, i.e. chatsvc
-            service_port: service port which is only required for services
+            service: optional Service object which is only required for services
                 registering positions on the hashring.
             positions: optional list of positions to occupy on the
                 hashring (nodes to create). Each position
@@ -99,30 +122,13 @@ class ServiceHashring(object):
                 case of a position collision, a randomly generated
                 position will also be used.
             position_data: Dict of additional key /values (string) to store with
-                the hashring position node. At a minimum, the service_name,
-                service_port, service_key, hostname, and fqdn will be
-                stored.
+                the hashring position node. 
         """
+
         self.service_name = service_name
-        self.service_port = service_port
+        self.service = service
         self.positions = positions
-        self.position_data = {
-            "service_name": service_name,
-            "service_port": service_port,
-            "hostname": socket.gethostname(),
-            "fqdn": socket.getfqdn()
-        }
-
-        if position_data:
-            self.position_data.update(position_data)
-        
-        #Calculate unique service key after applying user supplied data.
-        service_key = "%s://%s:%s" % (
-                self.position_data["service_name"],
-                self.position_data["hostname"],
-                self.position_data["service_port"])
-
-        self.position_data["service_key"] = hashlib.md5(service_key).hexdigest()
+        self.position_data = position_data or {}
 
     @abc.abstractmethod
     def start(self):

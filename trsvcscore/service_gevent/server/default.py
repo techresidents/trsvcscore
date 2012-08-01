@@ -15,7 +15,7 @@ from trsvcscore.service.server.base import Server, ServerInfo, ServerEndpoint, S
 
 class GThriftServer(Server):
     """Gevent Thrift Server."""
-    def __init__(self, name, interface, port, handler, processor,
+    def __init__(self, name, interface, port, handler, processor, address=None,
             transport=None, transport_factory=None, protocol_factory=None):
         """GThriftServer constructor.
 
@@ -25,7 +25,11 @@ class GThriftServer(Server):
             port: service port
             handler: GServiceHandler handler instance
             processor: Thrift service processor
-            transport: optional Thrift transport class
+            address: optional address to advertise in ServerInfo.
+                This may be a hostname, fqdn, or ip address. If no
+                address is provided, socket.gethostname() will
+                be used.
+            transport: optional Thrift server transport object
             transport_factory: optional Thrift transport factory
             protocol_factory: optional Thrift protocol factory
         """
@@ -35,6 +39,7 @@ class GThriftServer(Server):
         self.port = port
         self.handler = handler
         self.processor = processor
+        self.address = address or socket.gethostname()
         self.transport = transport or TSocket.TServerSocket(self.interface, self.port)
         self.transport_factory = transport_factory or TTransport.TBufferedTransportFactory()
         self.protocol_factory = protocol_factory or TBinaryProtocol.TBinaryProtocolFactory()
@@ -112,7 +117,7 @@ class GThriftServer(Server):
             ServerInfo object.
         """
         endpoint = ServerEndpoint(
-                address=socket.gethostname(),
+                address=self.address,
                 port=self.port,
                 protocol=ServerProtocol.THRIFT,
                 transport=ServerTransport.TCP)

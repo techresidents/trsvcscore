@@ -6,6 +6,7 @@ from trpycore.zookeeper_gevent.client import GZookeeperClient
 from trpycore.zookeeper_gevent.watch import GHashringWatch
 from trpycore.zookeeper.watch import HashringWatch
 from trsvcscore.hashring.base import ServiceHashring, ServiceHashringNode, ServiceHashringException, ServiceHashringEvent
+from trsvcscore.service.base import ServiceInfo
 
 class ZookeeperServiceHashring(ServiceHashring):
     """Consistent service hashring.
@@ -35,13 +36,13 @@ class ZookeeperServiceHashring(ServiceHashring):
     data can be added by services registering positions in the ring.
     """
     def __init__(self, zookeeper_client, service_name,
-            service_port=None, positions=None, position_data=None):
+            service=None, positions=None, position_data=None):
         """ZookeeperServiceHashring constructor.
 
         Args:
             zookeeper_client: zookeeper client instance
             service_name: service name, i.e. chatsvc
-            service_port: service port which is only required for services
+            service: optional Service object which is only required for services
                 registering positions on the hashring.
             positions: optional list of positions to occupy on the
                 hashring (nodes to create). Each position
@@ -50,31 +51,38 @@ class ZookeeperServiceHashring(ServiceHashring):
                 case of a position collision, a randomly generated
                 position will also be used.
             position_data: Dict of additional key /values (string) to store with
-                the hashring position node. At a minimum, the service_name,
-                service_port, service_key, hostname, and fqdn will be
-                stored.
+                the hashring position node.
         """
         super(ZookeeperServiceHashring, self).__init__(
                 service_name=service_name,
-                service_port=service_port,
+                service=service,
                 positions=positions,
                 position_data=position_data)
 
         self.zookeeper_client = zookeeper_client
         self.path = os.path.join("/services", service_name, "hashring")
-        
+        self.node_data = {}
+
         #Determine hashring class based on zookeeper client
         if isinstance(self.zookeeper_client, GZookeeperClient):
             hashring_class = GHashringWatch
         else:
             hashring_class = HashringWatch
         
+        #Create node data if registering positions
+        if self.service:
+            service_info = self.service.info()
+            self.node_data = {
+                "service_info": service_info.to_json(),
+                "data": self.position_data
+            }
+
         #Create hash ring
         self.hashring_watch = hashring_class(
                 client=self.zookeeper_client,
                 path=self.path,
                 positions=self.positions,
-                position_data=json.dumps(self.position_data),
+                position_data=json.dumps(self.node_data),
                 watch_observer=self._watch_observer,
                 session_observer=self._session_observer)
 
@@ -173,11 +181,11 @@ class ZookeeperServiceHashring(ServiceHashring):
         keys = {}
         hostnames = {}
         for node in nodes:
-            if node.service_key not in keys:
-                if node.hostname not in hostnames or not merge_nodes:
+            if node.service_info.key not in keys:
+                if node.service_info.hostname not in hostnames or not merge_nodes:
                     results.append(node)
-                    hostnames[node.hostname] = True
-                    keys[node.service_key] = True
+                    hostnames[node.service_info.hostname] = True
+                    keys[node.service_info.key] = True
 
         return results
 
@@ -210,9 +218,12 @@ class ZookeeperServiceHashring(ServiceHashring):
         """
         results = []
         for node in hashring_nodes or []:
+            node_data = json.loads(node.data)
+            service_info = ServiceInfo.from_json(node_data["service_info"])
             service_node = ServiceHashringNode(
                 token=node.token,
-                data=json.loads(node.data))
+                service_info = service_info, 
+                data=node_data["data"])
             results.append(service_node)
         return results
 
@@ -223,11 +234,16 @@ class ZookeeperServiceHashring(ServiceHashring):
         """
         results = []
         for service_node in hashring_nodes or []:
+            node_data = {
+                "service_info": service_node.service_info.to_json(),
+                "data": service_node.data
+            }
             node = self.hashring_watch.HashringNode(
                 token=service_node.token,
-                data=json.dumps(service_node.data))
+                data=json.dumps(node_data))
             results.append(node)
         return results
+
 
     def _watch_observer(self, hashring_watch, previous_hashring,
             current_hashring, added_nodes, removed_nodes):

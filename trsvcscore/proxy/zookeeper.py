@@ -7,7 +7,6 @@ from trpycore.zookeeper_gevent.watch import GChildrenWatch
 from trpycore.zookeeper.watch import ChildrenWatch
 from trsvcscore.registrar.zookeeper import ZookeeperServiceRegistrar
 from trsvcscore.proxy.base import ServiceProxyException, ServiceProxy
-from trsvcscore.service.server.base import ServerProtocol, ServerTransport
 
 class ZookeeperServiceProxy(ServiceProxy):
     """Zookeeper based service proxy.
@@ -181,18 +180,15 @@ class ZookeeperServiceProxy(ServiceProxy):
         #If a service instance is available, create the object and stage
         #it to be swapped in on the next user invocation.
         if path and service_info:
-            #Find the TCP/THRIFT server and corresponding endpoint
-            for server in service_info.servers:
-                for endpoint in server.endpoints:
-                    if endpoint.protocol ==  ServerProtocol.THRIFT and \
-                            endpoint.transport == ServerTransport.TCP:
-                        node = os.path.basename(path)
-                        transport = self.transport_class(endpoint.address, endpoint.port)
-                        protocol = self.protocol_class(transport)
-                        service = self.service_class.Client(protocol)
+            #Get the TCP/THRIFT server endpoint
+            endpoint = service_info.default_endpoint()
+            node = os.path.basename(path)
+            transport = self.transport_class(endpoint.address, endpoint.port)
+            protocol = self.protocol_class(transport)
+            service = self.service_class.Client(protocol)
 
-                        result = (node, service, transport)
-                        return result
+            result = (node, service, transport)
+
         return result
 
     def _get_service_method_wrapper(self, method):

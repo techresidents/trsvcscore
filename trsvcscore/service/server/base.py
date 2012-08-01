@@ -52,6 +52,14 @@ class ServerEndpoint(object):
                 json_dict["port"],
                 json_dict["protocol"],
                 json_dict["transport"])
+    
+    def __repr__(self):
+        return "%s(%s, %s, %s, %s" % (
+                self.__class__.__name__,
+                self.address,
+                self.port,
+                self.protocol,
+                self.transport)
 
     def to_json(self):
         """Convert ServerEndpoint object to json representation.
@@ -102,6 +110,18 @@ class ServerInfo(object):
             endpoints.append(ServerEndpoint.from_json(json_endpoint))
         
         return ServerInfo(json_dict["name"], endpoints)
+    
+    def __repr__(self):
+        return "%s(%s, %r)" % (
+                self.__class__.__name__,
+                self.name,
+                self.endpoints)
+
+    def __str__(self):
+        return "%s(%s, %s)" % (
+                self.__class__.__name__,
+                self.name,
+                self.endpoints)
 
     def to_json(self):
         """Convert ServerInfo object to json representation.

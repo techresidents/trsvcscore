@@ -1,3 +1,6 @@
+import socket
+import uuid
+
 from trpycore.thread.util import join
 from trsvcscore.service.base import Service, ServiceInfo
 
@@ -14,23 +17,30 @@ class DefaultService(Service):
 
     This class is intended to be subclassed by concrete service implementations.
     """
-    def __init__(self, name, version, build, hostname, fqdn, servers):
+    def __init__(self, name, version, build, servers, hostname=None, fqdn=None, key=None):
         """DefaultService constructor.
 
         Args:
             name: service name, i.e. chatsvc
             version: service version as string
             build: service build number as string
-            hostname: service hostname
-            fqd: service fully qualified domain name
             servers: list of Server objects
+            hostname: optional service hostname.
+                If not provided, socket.gethostname()
+                will be used.
+            fqdn: optional service fully qualified domain name.
+                If not provided, socket.getfqdn() will be 
+                used.
+            key: optional unique service key identifier. If not
+                provided a randomly generated UUID will be used.
         """
         self._name = name
         self._version = version
         self._build = build
-        self.hostname = hostname
-        self.fqdn = fqdn
         self.servers = servers
+        self.hostname = hostname or socket.gethostname()
+        self.fqdn = fqdn or socket.getfqdn()
+        self.key = uuid.uuid4().hex
         self.running = False
     
     def name(self):
@@ -119,11 +129,12 @@ class DefaultService(Service):
             server_info.append(server.info())
         
         result = ServiceInfo(
-                self._name,
-                self._version,
-                self._build,
-                self.hostname,
-                self.fqdn,
-                server_info)
+                name=self._name,
+                version=self._version,
+                build=self._build,
+                hostname=self.hostname,
+                fqdn=self.fqdn,
+                key=self.key,
+                servers=server_info)
 
         return result
