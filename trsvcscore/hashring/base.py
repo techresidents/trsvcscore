@@ -40,7 +40,7 @@ class ServiceHashringNode(object):
                 self.data)
 
     def __str__(self):
-        return "%s(%x, %s)" % (
+        return "%s(%032x, %s)" % (
                 self.__class__.__name__,
                 self.token,
                 self.service_info)
