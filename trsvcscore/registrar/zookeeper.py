@@ -189,10 +189,10 @@ class ZookeeperServiceRegistrar(ServiceRegistrar):
                     if host_services:
                         service_path = random.choice(host_services.keys())
                         result = (service_path, services[service_path])
-                
+
                 #If still no result, pick one at random
-                if result is None:
-                    service_path = random.choice(host_services.keys())
+                if result[0] is None:
+                    service_path = random.choice(services.keys())
                     result = (service_path, services[service_path])
 
         except Exception as error:

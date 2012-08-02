@@ -10,7 +10,7 @@ class ServiceHashringNode(object):
         """ServiceHashringNode constructor.
 
         Args:
-            token: Hashring node token identifying the node's
+            token: 128-bit integer token identifying the node's
                 position on the hashring.
             service_info: ServiceInfo object identifying the service
                 occupying the node.
@@ -40,7 +40,7 @@ class ServiceHashringNode(object):
                 self.data)
 
     def __str__(self):
-        return "%s(%s, %s)" % (
+        return "%s(%x, %s)" % (
                 self.__class__.__name__,
                 self.token,
                 self.service_info)
@@ -117,10 +117,10 @@ class ServiceHashring(object):
                 registering positions on the hashring.
             positions: optional list of positions to occupy on the
                 hashring (nodes to create). Each position
-                must be a uuid hex string or None. If None, a randomly
-                generated position will be used. Note that in the 
-                case of a position collision, a randomly generated
-                position will also be used.
+                must be a 128-bit integer in integer or hex string format.
+                If None, a randomly generated position will be used.
+                Note that in the case of a position collision, a
+                randomly generated position will also be used.
             position_data: Dict of additional key /values (string) to store with
                 the hashring position node. 
         """

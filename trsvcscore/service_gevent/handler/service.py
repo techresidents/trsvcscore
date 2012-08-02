@@ -168,7 +168,7 @@ class GServiceHandler(TRService.Iface, Handler):
         Returns:
             service build number (string)
         """
-        return self.service.build()
+        return self.service.build() or ""
 
     def getStatus(self, requestContext):
         """Get service status.
