@@ -86,7 +86,7 @@ class ChatMinute(Base):
     id = Column(Integer, primary_key=True)
     chat_session_id = Column(Integer, ForeignKey("chat_session.id"))
     start = Column(DateTime)
-    end = Column(DateTime)
+    end = Column(DateTime, nullable=True)
 
     chat_session = relationship(ChatSession, backref="chat_minutes")
 
@@ -138,8 +138,8 @@ class ChatTag(Base):
     chat_minute = relationship(ChatMinute, backref="chat_tags")
     tag = relationship(Tag)
 
-class ChatSpeaking(Base):
-    __tablename__ = "chat_speaking"
+class ChatSpeakingMarker(Base):
+    __tablename__ = "chat_speaking_marker"
 
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("auth_user.id"))
@@ -148,13 +148,13 @@ class ChatSpeaking(Base):
     end = Column(DateTime)
 
     user = relationship(User)
-    chat_minute = relationship(ChatMinute, backref="chat_speaking")
+    chat_minute = relationship(ChatMinute, backref="chat_speaking_markers")
 
 class ChatMessage(Base):
     __tablename__ = "chat_message"
 
     id = Column(Integer, primary_key=True)
-    message_id = Column(String(1024), unique=True)
+    message_id = Column(String(1024), unique=True) #TODO test this reference
     chat_session_id = Column(Integer, ForeignKey("chat_session.id"))
     type_id = Column(Integer, ForeignKey("chat_message_type.id"))
     format_type_id = Column(Integer, ForeignKey("chat_message_format_type.id"))
