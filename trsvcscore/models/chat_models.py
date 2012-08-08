@@ -133,6 +133,7 @@ class ChatTag(Base):
     chat_minute_id = Column(Integer, ForeignKey("chat_minute.id"))
     tag_id = Column(Integer, ForeignKey("tag.id"), nullable=True)
     name = Column(String(1024))
+    deleted = Column(Boolean, default=False)
 
     user = relationship(User)
     chat_minute = relationship(ChatMinute, backref="chat_tags")
