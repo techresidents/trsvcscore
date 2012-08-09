@@ -46,10 +46,10 @@ class ZookeeperServiceHashring(ServiceHashring):
                 registering positions on the hashring.
             positions: optional list of positions to occupy on the
                 hashring (nodes to create). Each position
-                must be a uuid hex string or None. If None, a randomly
-                generated position will be used. Note that in the 
-                case of a position collision, a randomly generated
-                position will also be used.
+                must be a 128-bit integer in integer or hex string format.
+                If None, a randomly generated position will be used.
+                Note that in the case of a position collision, a
+                randomly generated position will also be used.
             position_data: Dict of additional key /values (string) to store with
                 the hashring position node.
         """
@@ -62,6 +62,7 @@ class ZookeeperServiceHashring(ServiceHashring):
         self.zookeeper_client = zookeeper_client
         self.path = os.path.join("/services", service_name, "hashring")
         self.node_data = {}
+        self.log = logging.getLogger("%s.%s" % (__name__, self.__class__.__name__))
 
         #Determine hashring class based on zookeeper client
         if isinstance(self.zookeeper_client, GZookeeperClient):
@@ -90,10 +91,12 @@ class ZookeeperServiceHashring(ServiceHashring):
 
     def start(self):
         """Start watching the hashring and register positions if needed."""
+        self.log.info("Starting ZookeeperServiceHashring ...")
         self.hashring_watch.start()
 
     def stop(self):
         """Stop watching the hashring and remove positions if needed."""
+        self.log.info("Stopping ZookeeperServiceHashring ...")
         self.hashring_watch.stop()
     
     def join(self, timeout=None):
@@ -176,7 +179,7 @@ class ZookeeperServiceHashring(ServiceHashring):
         
         nodes = self.hashring_watch.preference_list(data, hashring)
         nodes = self._convert_hashring_nodes(nodes)
-        
+
         results = []
         keys = {}
         hostnames = {}
@@ -186,7 +189,6 @@ class ZookeeperServiceHashring(ServiceHashring):
                     results.append(node)
                     hostnames[node.service_info.hostname] = True
                     keys[node.service_info.key] = True
-
         return results
 
     def find_hashring_node(self, data):
@@ -205,7 +207,7 @@ class ZookeeperServiceHashring(ServiceHashring):
             ServiceHashringException if no nodes are available.
         """
 
-        nodes = self.preference_list()
+        nodes = self.preference_list(data)
         if nodes:
             return nodes[0]
         else:
@@ -273,7 +275,7 @@ class ZookeeperServiceHashring(ServiceHashring):
                 try:
                     observer(self, event)
                 except Exception as error:
-                    logging.exception(error)
+                    self.log.exception(error)
 
     def _session_observer(self, event):
         """Hashring watch session observer
@@ -286,11 +288,14 @@ class ZookeeperServiceHashring(ServiceHashring):
                 event = ServiceHashringEvent(ServiceHashringEvent.CONNECTED_EVENT)
             elif event.state_name == "CONNECTING_STATE":
                 event = ServiceHashringEvent(ServiceHashringEvent.DISCONNECTED_EVENT)
-            elif event.state_name == "SESSION_EXPIRED_STATE":
+            elif event.state_name == "EXPIRED_SESSION_STATE":
                 event = ServiceHashringEvent(ServiceHashringEvent.DISCONNECTED_EVENT)
+            else:
+                self.log.error("unhandled zookeeper event: state=%s" % event.state_name)
+                return
         
             for observer in self.observers:
                 try:
                     observer(self, event)
                 except Exception as error:
-                    logging.exception(error)
+                    self.log.exception(error)

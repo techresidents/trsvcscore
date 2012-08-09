@@ -5,7 +5,7 @@ from tridlcore.gen.ttypes import Status
 
 from trpycore.counter.atomic import AtomicCounters
 from trpycore.zookeeper.client import ZookeeperClient
-from trsvcscore.registrar.zookeeper import ZookeeperServiceRegistrar
+from trsvcscore.registrar.zoo import ZookeeperServiceRegistrar
 from trsvcscore.service.handler.base import Handler
 
 
@@ -112,6 +112,7 @@ class ServiceHandler(TRService.Iface, Handler):
         """Stop service handler."""
         if self.running:
             self.running = False
+            self.registrar.unregister_service(self.service)
             self.zookeeper_client.stop()
 
     def status(self):
@@ -168,7 +169,7 @@ class ServiceHandler(TRService.Iface, Handler):
         Returns:
             service build number (string)
         """
-        return self.service.build()
+        return self.service.build() or ""
 
     def getStatus(self, requestContext):
         """Get service status.

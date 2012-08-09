@@ -20,12 +20,15 @@ class ServiceRegistrar(object):
         return
 
     @abc.abstractmethod
-    def unregister_service(self):
+    def unregister_service(self, service):
         """Unregister a previously registered service with the registrar.
 
         Unegister a service with the registrar. Failed registrations,
         due to connectivity issues, will be deferred and automatically
         retried upon connection reestablishment.
+
+        Args:
+            service: Service object
 
         Returns: True if service was unregistered, False if unregistration
             was deferred.

@@ -2,11 +2,12 @@ import logging
 import socket
 import threading
 
-from thrift.transport import TTransport, TSocket
+from thrift.transport import TTransport
 from thrift.protocol import TBinaryProtocol
 
 from tridlcore.gen.ttypes import Status
 from trpycore.thrift.server import TThreadPoolServer
+from trpycore.thrift.transport import TNonBlockingServerSocket
 from trpycore.thread.util import join
 from trsvcscore.service.server.base import Server, ServerInfo, ServerEndpoint, ServerProtocol, ServerTransport
 
@@ -45,7 +46,7 @@ class ThriftServer(Server):
         self.processor = processor
         self.threads = threads
         self.address = address or socket.gethostname()
-        self.transport = transport or TSocket.TServerSocket(self.interface, self.port)
+        self.transport = transport or TNonBlockingServerSocket(self.interface, self.port)
         self.transport_factory = transport_factory or TTransport.TBufferedTransportFactory()
         self.protocol_factory = protocol_factory or TBinaryProtocol.TBinaryProtocolFactory()
         self.running = False
@@ -110,7 +111,6 @@ class ThriftServer(Server):
         while self.running:
             try:
                 thread.join(1)
-
             except Exception as error:
                 logging.exception(error)
         
@@ -142,7 +142,8 @@ class ThriftServer(Server):
             #that worker threads will exit in timely 
             #manner. Additionally, it will not unblock
             #server.serve().
-            self.server.stop()
+            if self.server is not None:
+                self.server.stop()
 
     def status(self):
         """Get server status.

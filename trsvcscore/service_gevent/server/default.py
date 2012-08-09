@@ -10,7 +10,7 @@ from thrift.protocol import TBinaryProtocol
 from tridlcore.gen.ttypes import Status
 from trpycore.greenlet.util import join
 from trpycore.thrift_gevent.server import TGeventServer
-from trpycore.thrift_gevent.transport import TSocket
+from trpycore.thrift_gevent.transport import TNonBlockingServerSocket
 from trsvcscore.service.server.base import Server, ServerInfo, ServerEndpoint, ServerProtocol, ServerTransport
 
 class GThriftServer(Server):
@@ -40,10 +40,11 @@ class GThriftServer(Server):
         self.handler = handler
         self.processor = processor
         self.address = address or socket.gethostname()
-        self.transport = transport or TSocket.TServerSocket(self.interface, self.port)
+        self.transport = transport or TNonBlockingServerSocket(self.interface, self.port)
         self.transport_factory = transport_factory or TTransport.TBufferedTransportFactory()
         self.protocol_factory = protocol_factory or TBinaryProtocol.TBinaryProtocolFactory()
         self.greenlet = None
+        self.server = None
         self.running = False
         self._status = Status.STOPPED
     
@@ -60,11 +61,11 @@ class GThriftServer(Server):
         self._status = Status.ALIVE
         
         errors = 0
-
+        
         while self.running:
             try:
-                server = TGeventServer(self.processor, self.transport, self.transport_factory, self.protocol_factory)
-                server.serve()
+                self.server = TGeventServer(self.processor, self.transport, self.transport_factory, self.protocol_factory)
+                self.server.serve()
 
             except Exception as error:
                 logging.exception(error)
@@ -73,6 +74,7 @@ class GThriftServer(Server):
                 if errors >= 10:
                     logging.error("Halting service (errors >= %s)" % errors)
                     self._status = Status.DEAD
+                    break
 
             except gevent.GreenletExit:
                 break
@@ -87,7 +89,8 @@ class GThriftServer(Server):
             self._status = Status.STOPPING
             self.running = False
             self.handler.stop()
-            self.greenlet.kill()
+            self.server.stop()
+            #self.greenlet.kill()
     
     def join(self, timeout=None):
         """Join server.

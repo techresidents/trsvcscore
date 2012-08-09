@@ -2,10 +2,13 @@ import logging
 import os
 import threading
 
+from thrift import Thrift
+from thrift.transport.TTransport import TTransportException
+
 from trpycore.pool.queue import QueuePool
 from trpycore.zookeeper_gevent.watch import GChildrenWatch
 from trpycore.zookeeper.watch import ChildrenWatch
-from trsvcscore.registrar.zookeeper import ZookeeperServiceRegistrar
+from trsvcscore.registrar.zoo import ZookeeperServiceRegistrar
 from trsvcscore.proxy.base import ServiceProxyException, ServiceProxy
 
 class ZookeeperServiceProxy(ServiceProxy):
@@ -81,6 +84,7 @@ class ZookeeperServiceProxy(ServiceProxy):
         self.zookeeper_client = zookeeper_client
         self.registrar = ZookeeperServiceRegistrar(self.zookeeper_client)
         self.registry_path = os.path.join("/services", self.service_name, "registry")
+        self.log = logging.getLogger("%s.%s" % (__name__, self.__class__.__name__))
 
         self.service = None               #Service client object
         self.service_transport = None     #Service client transport
@@ -201,13 +205,16 @@ class ZookeeperServiceProxy(ServiceProxy):
 
         if method not in self.service_method_wrappers:
             def wrapper(*args, **kwargs):
+                if self.service_transport is None:
+                    raise ServiceProxyException("service unavailable")
+
                 try:
                     if not self.service_transport.isOpen():
                         self.service_transport.open()
                     return method(*args, **kwargs)
-                except Exception as error:
-                    logging.exception(error)
-                    raise ServiceProxyException("service unavailable")
+                except TTransportException as error:
+                    self.service_transport.close()
+                    raise ServiceProxyException("service unavailable: %s" % str(error))
                 finally:
                     if not self.keepalive and self.service_transport.isOpen():
                         self.service_transport.close()

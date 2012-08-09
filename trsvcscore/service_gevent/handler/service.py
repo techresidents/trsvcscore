@@ -3,7 +3,7 @@ from tridlcore.gen.ttypes import Status
 
 from trpycore.counter.basic import BasicCounters
 from trpycore.zookeeper_gevent.client import GZookeeperClient
-from trsvcscore.registrar.zookeeper import ZookeeperServiceRegistrar
+from trsvcscore.registrar.zoo import ZookeeperServiceRegistrar
 from trsvcscore.service.handler.base import Handler
 
 
@@ -168,7 +168,7 @@ class GServiceHandler(TRService.Iface, Handler):
         Returns:
             service build number (string)
         """
-        return self.service.build()
+        return self.service.build() or ""
 
     def getStatus(self, requestContext):
         """Get service status.
