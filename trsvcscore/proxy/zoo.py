@@ -8,7 +8,7 @@ from thrift.transport.TTransport import TTransportException
 from trpycore.pool.queue import QueuePool
 from trpycore.zookeeper_gevent.watch import GChildrenWatch
 from trpycore.zookeeper.watch import ChildrenWatch
-from trsvcscore.registrar.zookeeper import ZookeeperServiceRegistrar
+from trsvcscore.registrar.zoo import ZookeeperServiceRegistrar
 from trsvcscore.proxy.base import ServiceProxyException, ServiceProxy
 
 class ZookeeperServiceProxy(ServiceProxy):

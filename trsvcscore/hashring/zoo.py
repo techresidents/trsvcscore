@@ -207,7 +207,7 @@ class ZookeeperServiceHashring(ServiceHashring):
             ServiceHashringException if no nodes are available.
         """
 
-        nodes = self.preference_list()
+        nodes = self.preference_list(data)
         if nodes:
             return nodes[0]
         else:
@@ -288,8 +288,11 @@ class ZookeeperServiceHashring(ServiceHashring):
                 event = ServiceHashringEvent(ServiceHashringEvent.CONNECTED_EVENT)
             elif event.state_name == "CONNECTING_STATE":
                 event = ServiceHashringEvent(ServiceHashringEvent.DISCONNECTED_EVENT)
-            elif event.state_name == "SESSION_EXPIRED_STATE":
+            elif event.state_name == "EXPIRED_SESSION_STATE":
                 event = ServiceHashringEvent(ServiceHashringEvent.DISCONNECTED_EVENT)
+            else:
+                self.log.error("unhandled zookeeper event: state=%s" % event.state_name)
+                return
         
             for observer in self.observers:
                 try:

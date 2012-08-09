@@ -5,6 +5,8 @@ import random
 import socket
 import Queue
 
+import zookeeper
+
 from trsvcscore.registrar.base import ServiceRegistrar
 from trsvcscore.service.base import ServiceInfo
 
@@ -18,7 +20,12 @@ class ZookeeperServiceRegistrar(ServiceRegistrar):
         """
         self.zookeeper_client = zookeeper_client
         self.registration_queue = Queue.Queue()
-        self.registered_service_node = None
+
+        #store map of registered service so we can
+        #re-register them upon session expiration.
+        #Note that this is necessary since registration
+        #nodes are ephemeral.
+        self.registered_services = {}
         self.log = logging.getLogger("%s.%s" % (__name__, self.__class__.__name__))
 
         self.zookeeper_client.add_session_observer(self._session_observer)
@@ -33,7 +40,7 @@ class ZookeeperServiceRegistrar(ServiceRegistrar):
         Args:
             event: ZookeeperClient.Event
         """
-        if event.state_name == "CONNECTED_STATE":
+        if event.state == zookeeper.CONNECTED_STATE:
             while not self.registration_queue.empty():
                 service = self.registration_queue.get()
                 try:
@@ -41,6 +48,19 @@ class ZookeeperServiceRegistrar(ServiceRegistrar):
                 except Exception as error:
                     self.log.error("Registration for %s failed" % (service.name()))
                     self.log.exception(error)
+        elif event.state == zookeeper.EXPIRED_SESSION_STATE:
+            #Add registeration jobs to queue for all registered services
+            #so that services are re-registered when we re-connect.
+            for service_node, service in self.registered_services.iteritems():
+                self.registration_queue.put(service)
+
+    
+    def _service_node_path(self, service):
+        """Returns the Zookeeper service node path for service."""
+        service_info = service.info()
+        service_path = os.path.join("/services", service_info.name, "registry")
+        service_node = os.path.join(service_path, "%s_%s" % (service_info.name, service_info.key))
+        return service_node
 
     def _register(self, service):
         """Register service with zookeeper.
@@ -58,19 +78,21 @@ class ZookeeperServiceRegistrar(ServiceRegistrar):
             raise RuntimeError("Zookeeper client not connected")
         
         service_info = service.info()
-        service_path = os.path.join("/services", service_info.name, "registry")
-        service_node = os.path.join(service_path, service_info.name)
+        service_node = self._service_node_path(service)
         
-        self.zookeeper_client.create_path(service_path)
-        self.zookeeper_client.create(
-                service_node,
-                json.dumps(service_info.to_json()),
-                sequence=True,
-                ephemeral=True)
+        try:
+            self.zookeeper_client.create_path(
+                    service_node,
+                    json.dumps(service_info.to_json()),
+                    sequence=False,
+                    ephemeral=True)
 
-        self.registered_service_node = service_node
-        
-        self.log.info("Registration for %s completed" % (service_info.name))
+            self.registered_services[service_node] = service
+
+        except zookeeper.NodeExistsException:
+            self.log.warning("Registration for %s not needed (already registered)." % service_info)
+
+        self.log.info("Registration for %s completed" % service_info)
 
     def register_service(self, service):
         """Register a service with the registrar.
@@ -80,7 +102,7 @@ class ZookeeperServiceRegistrar(ServiceRegistrar):
         successuflly reestablishes the connection. As soon as the
         connection is reestablished, the service will be registered.
 
-        Args
+        Args:
             service: Service object
         """
         result = False
@@ -90,29 +112,36 @@ class ZookeeperServiceRegistrar(ServiceRegistrar):
 
         except Exception as error:
             service_info = service.info()
-            self.log.warning("Registartion for %s deferred: %s" % (service_info.name, str(error)))
+            self.log.warning("Registartion for %s deferred: %s" % (service_info, str(error)))
             self.registration_queue.put(service)
         
         return result
 
-    def unregister_service(self):
+    def unregister_service(self, service):
         """Unregister a previously registered service with the registrar.
 
         If zookeeper connection is unavailable when this method is invoked,
         the service will be considered unregistered.
+
+        Args:
+            service: Service object
         """
-
         result = False
-        try:
-            if self.registered_service_node:
-                self.zookeeper_client.delete(self.registered_service_node)
-                result = True
-            else:
-                result = True
+        service_info = service.info()
+        service_node = self._service_node_path(service)
 
+        try:
+            self.zookeeper_client.delete(service_node)
+
+        except zookeeper.NoNodeException:
+            result = True
+            self.log.warning("Unregistration for %s not needed (already unregistered)." % service_info)
         except Exception as error:
-            self.log.warning("Unregistartion for %s failed (considered service unregistered): %s" % (self.registered_service_node, str(error)))
+            self.log.warning("Unregistartion for %s failed (considered service unregistered): %s" % (service_info, str(error)))
         
+        if service_node in self.registered_services:
+            del self.registered_services[service_node]
+
         return result
 
     def locate_service(self, name, host_affinity=True):
@@ -217,6 +246,32 @@ class ZookeeperServiceRegistrar(ServiceRegistrar):
                 service_node = os.path.join(path, child)
                 data, stat = self.zookeeper_client.get_data(service_node)
                 result.append(ServiceInfo.from_json(data))
+        except Exception as error:                    
+            self.log.exception(error)
+
+        return result
+
+    def find_zookeeper_services(self, name):
+        """Find all available instances of a service.
+
+        Equivalent to find_services except the result is a list of tuples
+        including the zookeeper service node path. This is convenient if
+        the user would like to add a watch to the service.
+
+        Args:
+            name: service name
+        
+        Returns:
+            list of (Zookeeper node path, ServiceInfo) tuples for found services.
+        """
+        result = []
+
+        try:
+            path = os.path.join("/services", name, "registry")
+            for child in self.zookeeper_client.get_children(path):
+                service_node = os.path.join(path, child)
+                data, stat = self.zookeeper_client.get_data(service_node)
+                result.append((service_node, ServiceInfo.from_json(data)))
         except Exception as error:                    
             self.log.exception(error)
 

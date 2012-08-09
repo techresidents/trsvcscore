@@ -3,7 +3,7 @@ from tridlcore.gen.ttypes import Status
 
 from trpycore.counter.basic import BasicCounters
 from trpycore.zookeeper_gevent.client import GZookeeperClient
-from trsvcscore.registrar.zookeeper import ZookeeperServiceRegistrar
+from trsvcscore.registrar.zoo import ZookeeperServiceRegistrar
 from trsvcscore.service.handler.base import Handler
 
 
