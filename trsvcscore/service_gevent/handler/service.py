@@ -14,7 +14,8 @@ class GServiceHandler(TRService.Iface, Handler):
     service handlers.
     """
 
-    def __init__(self, service, zookeeper_hosts, database_connection=None):
+    def __init__(self, service, zookeeper_hosts,
+            database_connection=None, database_connection_pool_size=5):
         """GServiceHandler constructor.
 
         Args:
@@ -38,7 +39,17 @@ class GServiceHandler(TRService.Iface, Handler):
             from trpycore import psycopg2_gevent
             from sqlalchemy import create_engine
             from sqlalchemy.orm import sessionmaker
-            engine = create_engine(database_connection)
+
+            #Note that max_overflow must be set to -1
+            #in order to avoid deadlocks in SQLAlchemy's
+            #QueuePool. QueuePool use's a threading.Lock
+            #when max_overflow is not set to -1, which
+            #will result in a deadlock when multiple
+            #connections are created from a single thread.
+            engine = create_engine(
+                    database_connection,
+                    pool_size=database_connection_pool_size,
+                    max_overflow=-1)
             self.DatabaseSession = sessionmaker(bind=engine)
         else:
             self.DatabaseSession = None

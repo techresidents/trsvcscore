@@ -16,7 +16,8 @@ class ServiceHandler(TRService.Iface, Handler):
     service handlers.
     """
 
-    def __init__(self, service, zookeeper_hosts, database_connection=None):
+    def __init__(self, service, zookeeper_hosts,
+            database_connection=None, database_connection_pool_size=5):
         """ServiceHandler constructor.
 
         Args:
@@ -38,7 +39,9 @@ class ServiceHandler(TRService.Iface, Handler):
         if database_connection:
             from sqlalchemy import create_engine
             from sqlalchemy.orm import sessionmaker
-            engine = create_engine(database_connection)
+            engine = create_engine(
+                    database_connection,
+                    pool_size=database_connection_pool_size)
             self.DatabaseSession = sessionmaker(bind=engine)
         else:
             self.DatabaseSession = None

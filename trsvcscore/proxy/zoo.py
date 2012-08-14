@@ -6,6 +6,7 @@ from thrift import Thrift
 from thrift.transport.TTransport import TTransportException
 
 from trpycore.pool.queue import QueuePool
+from trpycore.zookeeper_gevent.client import GZookeeperClient
 from trpycore.zookeeper_gevent.watch import GChildrenWatch
 from trpycore.zookeeper.watch import ChildrenWatch
 from trsvcscore.registrar.zoo import ZookeeperServiceRegistrar
@@ -47,7 +48,7 @@ class ZookeeperServiceProxy(ServiceProxy):
 
     def __init__(self, zookeeper_client, service_name,
             service_class=None, transport_class=None, protocol_class=None,
-            keepalive=False, is_gevent=False):
+            keepalive=False):
         """ZookeeperServiceProxy constructor.
 
         Args:
@@ -68,11 +69,12 @@ class ZookeeperServiceProxy(ServiceProxy):
             keepalive: Optional boolean indicating if transport should
                 be kept open between requests. If false, transport
                 will be opened and closed for each service request.
-            is_gevent: Optional boolean indicating if this is a 
-                gevent based service. If so, the default TSocket
-                transport_class will be patched for gevent 
-                compatability.
         """
+        if isinstance(zookeeper_client, GZookeeperClient):
+            is_gevent = True
+        else:
+            is_gevent = False
+        
         super(ZookeeperServiceProxy, self).__init__(
                 service_name,
                 service_class,

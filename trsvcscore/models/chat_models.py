@@ -50,6 +50,8 @@ class ChatSession(Base):
     chat_id = Column(Integer, ForeignKey("chat.id"))
     token = Column(String(1024), nullable=True)
     participants = Column(Integer, default=0)
+    start = Column(DateTime, nullable=True)
+    end = Column(DateTime, nullable=True)
 
     chat = relationship(Chat, backref="chat_sessions")
     users = relationship(User, secondary=lambda: ChatUser.__table__)
@@ -155,7 +157,7 @@ class ChatMessage(Base):
     __tablename__ = "chat_message"
 
     id = Column(Integer, primary_key=True)
-    message_id = Column(String(1024), unique=True) #TODO test this reference
+    message_id = Column(String(1024), unique=True)
     chat_session_id = Column(Integer, ForeignKey("chat_session.id"))
     type_id = Column(Integer, ForeignKey("chat_message_type.id"))
     format_type_id = Column(Integer, ForeignKey("chat_message_format_type.id"))

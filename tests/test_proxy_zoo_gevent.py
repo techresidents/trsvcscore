@@ -63,8 +63,7 @@ class TestZookeeperProxy(unittest.TestCase):
     def test_proxy(self):
         proxy = ZookeeperServiceProxy(
                 self.zookeeper_client,
-                self.service.info().name,
-                is_gevent=True)
+                self.service.info().name)
 
         version = proxy.getVersion(self.request_context)
         self.assertEqual(version, "VERSION")
@@ -95,8 +94,7 @@ class TestZookeeperProxyServiceUnavailable(unittest.TestCase):
     def test_proxy(self):
         proxy = ZookeeperServiceProxy(
                 self.zookeeper_client,
-                self.service.info().name,
-                is_gevent=True)
+                self.service.info().name)
         
         with self.assertRaises(ServiceProxyException):
             proxy.getVersion(self.request_context)
@@ -141,8 +139,7 @@ class TestZookeeperProxySessionExpiration(unittest.TestCase):
     def test_proxy(self):
         proxy = ZookeeperServiceProxy(
                 self.zookeeper_client,
-                self.service.info().name,
-                is_gevent=True)
+                self.service.info().name)
 
         version = proxy.getVersion(self.request_context)
         self.assertEqual(version, "VERSION")

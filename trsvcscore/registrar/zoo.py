@@ -3,10 +3,10 @@ import json
 import os
 import random
 import socket
-import Queue
 
 import zookeeper
 
+from trpycore.zookeeper_gevent.client import GZookeeperClient
 from trsvcscore.registrar.base import ServiceRegistrar
 from trsvcscore.service.base import ServiceInfo
 
@@ -19,7 +19,14 @@ class ZookeeperServiceRegistrar(ServiceRegistrar):
             zookeeper_client: zookeeper client instance.
         """
         self.zookeeper_client = zookeeper_client
-        self.registration_queue = Queue.Queue()
+        
+        #Adjust queue for thread/greenlets accordingly.
+        if isinstance(self.zookeeper_client, GZookeeperClient):
+            import gevent.queue
+            self.registration_queue = gevent.queue.Queue()
+        else:
+            import Queue
+            self.registration_queue = Queue.Queue()
 
         #store map of registered service so we can
         #re-register them upon session expiration.

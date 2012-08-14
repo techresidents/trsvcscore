@@ -188,7 +188,7 @@ class GMongrel2Handler(Handler):
         
         except Exception as error:
             logging.exception(error)
-            connection.reply_http(unsafe_request, "internal error", code=503)
+            connection.reply_http(unsafe_request, "internal error", code=500)
     
     def handle_disconnect(self, request):
         """Disconnection handler to be overriden by subclass."""
