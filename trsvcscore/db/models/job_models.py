@@ -2,9 +2,9 @@ from sqlalchemy import Boolean, Column, Integer, Date, DateTime, ForeignKey, Str
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
-from trsvcscore.models.base import Base
-from trsvcscore.models.django_models import User
-from trsvcscore.models.common_models import Location, Organization, Technology
+from trsvcscore.db.models.base import Base
+from trsvcscore.db.models.django_models import User
+from trsvcscore.db.models.common_models import Location, Organization, Technology
 
 class JobPreferences(Base):
     __tablename__ = "job_prefs"

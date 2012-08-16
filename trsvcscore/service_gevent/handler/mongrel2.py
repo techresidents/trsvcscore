@@ -51,7 +51,7 @@ class GMongrel2Handler(Handler):
         """Mongrel2 JSON response."""
         def __init__(self, *args, **kwargs):
             super(GMongrel2Handler.JsonResponse, self).__init__(*args, **kwargs)
-            self.headers["content-type"] = "application/json"
+            self.headers["content-type"] = "application/json; charset=UTF-8"
 
 
     def __init__(self, url_handlers=None):

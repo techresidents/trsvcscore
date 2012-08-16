@@ -1,6 +1,6 @@
 from sqlalchemy import Boolean, Column, Integer, DateTime, String
 
-from trsvcscore.models.base import Base
+from trsvcscore.db.models.base import Base
 
 class User(Base):
     __tablename__ = "auth_user"

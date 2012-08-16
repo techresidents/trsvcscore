@@ -2,9 +2,9 @@ from sqlalchemy import Boolean, Column, Float, Integer, DateTime, ForeignKey, St
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
-from trsvcscore.models.base import Base
-from trsvcscore.models.django_models import User
-from trsvcscore.models.common_models import Tag, Topic, Quality
+from trsvcscore.db.models.base import Base
+from trsvcscore.db.models.django_models import User
+from trsvcscore.db.models.common_models import Tag, Topic, Quality
 
 class ChatType(Base):
     __tablename__ = "chat_type"
