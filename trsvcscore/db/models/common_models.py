@@ -1,8 +1,8 @@
 from sqlalchemy import Boolean, Column, Integer, ForeignKey, String
 from sqlalchemy.orm import relationship, backref
 
-from trsvcscore.models.base import Base
-from trsvcscore.models.django_models import User
+from trsvcscore.db.models.base import Base
+from trsvcscore.db.models.django_models import User
 
 RESOURCE_TYPES = {
     "DOCUMENT": 1,
@@ -56,7 +56,7 @@ class Organization(Base):
 class Tag(Base):
     __tablename__ = "tag"
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, unique=True)
     name = Column(String(100))
     concept_id = Column(Integer, ForeignKey("concept.id"))
 

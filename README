@@ -2,3 +2,7 @@ Python Services Core Library
 
 INSTALL:
 pip install git+ssh://dev.techresidents.com/tr/repos/techresidents/services/core/python/trsvcscore#egg=trsvcscore
+
+DEVELOPMENT:
+mkvirtualenv trsvcscore
+python setup.py develop

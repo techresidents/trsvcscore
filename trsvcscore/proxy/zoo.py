@@ -1,19 +1,18 @@
 import logging
 import os
-import Queue
 import threading
 
-from thrift.protocol import TBinaryProtocol
+from thrift import Thrift
+from thrift.transport.TTransport import TTransportException
 
-from tridlcore.gen import TRService
 from trpycore.pool.queue import QueuePool
 from trpycore.zookeeper_gevent.client import GZookeeperClient
 from trpycore.zookeeper_gevent.watch import GChildrenWatch
 from trpycore.zookeeper.watch import ChildrenWatch
-from trsvcscore.registrar.zookeeper import ZookeeperServiceRegistrar
-from trsvcscore.proxy.base import ServiceProxyException
+from trsvcscore.registrar.zoo import ZookeeperServiceRegistrar
+from trsvcscore.proxy.base import ServiceProxyException, ServiceProxy
 
-class ZookeeperServiceProxy(object):
+class ZookeeperServiceProxy(ServiceProxy):
     """Zookeeper based service proxy.
 
     This class provides a convenience proxy for consuming
@@ -25,7 +24,7 @@ class ZookeeperServiceProxy(object):
     registered with ZookeeperServiceRegistrar.
 
     This class will proxy all methods and attributes to the
-    underlying service object. If no service is available,
+    underlying service object. If no service is unavailable,
     a ServiceProxyException will be raised.
 
     Example usage:
@@ -47,8 +46,9 @@ class ZookeeperServiceProxy(object):
             return False
 
 
-    def __init__(self, zookeeper_client, service_name, service_class=None,
-            transport_class=None, protocol_class=None, keepalive=False):
+    def __init__(self, zookeeper_client, service_name,
+            service_class=None, transport_class=None, protocol_class=None,
+            keepalive=False):
         """ZookeeperServiceProxy constructor.
 
         Args:
@@ -61,29 +61,39 @@ class ZookeeperServiceProxy(object):
                 only provide proxying to the service methods defined
                 within TRService.
             transport_class: Optional Thrift transport class. If not
-                provided TSocket will be used. If zookeeper_client
-                is an instance of GZookeeperClient, TSocke will be
-                appropriately patched for gevent comptability.
+                provided TSocket will be used. TSocket will be
+                appropriately patched for gevent comptability
+                if is_gevent is set to True.
             protocol_class: Option Thrift protocol class. If not
                 provided this will default to TBinaryProtocol.
             keepalive: Optional boolean indicating if transport should
                 be kept open between requests. If false, transport
                 will be opened and closed for each service request.
         """
+        if isinstance(zookeeper_client, GZookeeperClient):
+            is_gevent = True
+        else:
+            is_gevent = False
+        
+        super(ZookeeperServiceProxy, self).__init__(
+                service_name,
+                service_class,
+                transport_class,
+                protocol_class,
+                keepalive,
+                is_gevent)
+
         self.zookeeper_client = zookeeper_client
-        self.service_name = service_name
-        self.keepalive = keepalive
-        self.service_class = service_class or TRService
-        self.protocol_class = protocol_class or TBinaryProtocol.TBinaryProtocol
         self.registrar = ZookeeperServiceRegistrar(self.zookeeper_client)
         self.registry_path = os.path.join("/services", self.service_name, "registry")
+        self.log = logging.getLogger("%s.%s" % (__name__, self.__class__.__name__))
 
         self.service = None               #Service client object
         self.service_transport = None     #Service client transport
         self.service_node = None          #Service zookeeper node, i.e. chatsvc_00000001
         self.service_method_wrappers = {} #Service method wrappers
         
-        #Staged service client object and node.
+        #Staged service client object, node, and transport.
         #If the the current self.service become unavailable
         #the _watcher() callback will be invoked asynchronously
         #by the zookeeper client. At this point, we'll create
@@ -91,17 +101,13 @@ class ZookeeperServiceProxy(object):
         #on the next user invocation.
         self.staged_service = None
         self.staged_service_node = None
+        self.staged_service_transport = None
         
-        #If using GZookeeperClient, we're in a gevent app and 
-        #should adjust the Thrift transport, lock, and watch accordingly.
-        if isinstance(self.zookeeper_client, GZookeeperClient):
-            from trpycore.thrift_gevent.transport import TSocket
-            self.transport_class = transport_class or TSocket.TSocket
+        #If we're in a gevent app adjust the lock, and watch accordingly.
+        if self.is_gevent:
             self.watch = GChildrenWatch(self.zookeeper_client, self.registry_path, self._watch)
             self.lock = self.NoOpLock()
         else:
-            from thrift.transport import TSocket
-            self.transport_class = transport_class or TSocket.TSocket
             self.watch = ChildrenWatch(self.zookeeper_client, self.registry_path, self._watch)
             self.lock = threading.Lock()
         
@@ -157,11 +163,13 @@ class ZookeeperServiceProxy(object):
         if self.service_node not in services and \
             self.staged_service_node not in services:
             
-            node, service = self._create_service()
+            node, service, transport = self._create_service()
             
             #Update staged service and node.
             with self.lock:
-                self.staged_service_node, self.staged_service = (node, service)
+                self.staged_service_node = node
+                self.staged_service = service
+                self.staged_service_transport = transport
         
     def _create_service(self):
         """Create a new service client object.
@@ -170,17 +178,18 @@ class ZookeeperServiceProxy(object):
             (Zookeeper node, Service, Transport) tuple if service is available,
             otherwise (None, None, None).
         """
-
         result = (None, None, None)
         
         #Locate an available service instance in the registrar
-        path, registration = self.registrar.locate_zookeeper_service(self.service_name)
+        path, service_info = self.registrar.locate_zookeeper_service(self.service_name)
 
         #If a service instance is available, create the object and stage
         #it to be swapped in on the next user invocation.
-        if path and registration:
+        if path and service_info:
+            #Get the TCP/THRIFT server endpoint
+            endpoint = service_info.default_endpoint()
             node = os.path.basename(path)
-            transport = self.transport_class(registration.hostname, registration.port)
+            transport = self.transport_class(endpoint.address, endpoint.port)
             protocol = self.protocol_class(transport)
             service = self.service_class.Client(protocol)
 
@@ -198,13 +207,16 @@ class ZookeeperServiceProxy(object):
 
         if method not in self.service_method_wrappers:
             def wrapper(*args, **kwargs):
+                if self.service_transport is None:
+                    raise ServiceProxyException("service unavailable")
+
                 try:
                     if not self.service_transport.isOpen():
                         self.service_transport.open()
                     return method(*args, **kwargs)
-                except Exception as error:
-                    logging.exception(error)
-                    raise ServiceProxyException("service unavailable")
+                except TTransportException as error:
+                    self.service_transport.close()
+                    raise ServiceProxyException("service unavailable: %s" % str(error))
                 finally:
                     if not self.keepalive and self.service_transport.isOpen():
                         self.service_transport.close()
@@ -237,6 +249,9 @@ class ZookeeperServiceProxy(object):
 
                 self.service_node = self.staged_service_node
                 self.staged_service_node = None
+
+                self.service_transport = self.staged_service_transport
+                self.staged_service_transport = None
         
         #If the service is unavailable raise ServiceProxyException.
         if self.service is None:
@@ -252,35 +267,66 @@ class ZookeeperServiceProxy(object):
 class ZookeeperServiceProxyPool(QueuePool):
     """Zookeeper service proxy pool.
     
-    Creates a queue of ZookeeperServiceProxy objects for use across threads / greenlets
-    depending on the chosen queue_class.
+    Creates a queue of ZookeeperServiceProxy objects for use across threads / greenlets.
 
     Example usage:
         with pool.get() as service:
             service.getVersion(RequestContext())
     """
     
-    def __init__(self, zookeeper_client, service_name, size, service_class=None, queue_class=Queue.Queue):
+    def __init__(self, zookeeper_client, service_name, size,
+            service_class=None, queue_class=None,
+            transport_class=None, protocol_class=None,
+            keepalive=False, is_gevent=False):
         """ZookeeperServiceProxyPool constructor.
 
         Args:
             zookeeper_client: Zookeeper client object.
             service_name: Service name, i.e. chatsvc
+            size: Number of ZookeeperSessionStore objects to include in pool.
             service_class: Optional service class, i.e. TChatService.
                 If not provided, TRService will be used which will
                 only provide proxying to the service methods defined
                 within TRService.
-            size: Number of ZookeeperSessionStore objects to include in pool.
             queue_class: Optional queue class. If not provided, will
-                default to Queue.Queue. The specified class must
+                default to Queue.Queue or gevent.queue.Queue depending
+                on the value of is_gevent. The specified class must
                 have a no-arg constructor and provide a get(block, timeout)
                 method.
+            transport_class: Optional Thrift transport class. If not
+                provided TSocket will be used. TSocket will be
+                appropriately patched for gevent comptability
+                if is_gevent is set to True.
+                appropriately patched for gevent comptability.
+            protocol_class: Option Thrift protocol class. If not
+                provided this will default to TBinaryProtocol.
+            keepalive: Optional boolean indicating if transport should
+                be kept open between requests. If false, transport
+                will be opened and closed for each service request.
+            is_gevent: Optional boolean indicating if this is a 
+                gevent based service. If so, the default TSocket
+                transport_class will be patched for gevent 
+                compatability, and an appropriate queue class will
+                be used.
         """
         self.zookeeper_client = zookeeper_client
         self.service_name = service_name
         self.size = size
         self.service_class = service_class
         self.queue_class = queue_class
+        self.transport_class = transport_class
+        self.protocol_class = protocol_class
+        self.keepalive = keepalive
+        self.is_gevent = is_gevent
+
+        if self.queue_class is None:
+            if self.is_gevent:
+                import gevent.queue
+                self.queue_class = gevent.queue.Queue
+            else:
+                import Queue
+                self.queue_class = Queue.Queue
+
         super(ZookeeperServiceProxyPool, self).__init__(
                 self.size,
                 factory=self,
@@ -291,4 +337,8 @@ class ZookeeperServiceProxyPool(QueuePool):
         return ZookeeperServiceProxy(
                 self.zookeeper_client,
                 self.service_name,
-                service_class=self.service_class)
+                service_class=self.service_class,
+                transport_class=self.transport_class,
+                protocol_class=self.protocol_class,
+                keepalive=self.keepalive,
+                is_gevent=self.is_gevent)

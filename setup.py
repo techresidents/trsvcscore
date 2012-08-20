@@ -1,6 +1,8 @@
+import os
+import setuptools
+
 from distutils.core import setup
 
-import os
 
 def find_packages():
     packages = []
@@ -14,10 +16,10 @@ def find_packages():
 
 setup(
     name='trsvcscore',
-    version = '0.6.0',
+    version = '0.7.0',
     author = 'Tech Residents, Inc.',
     packages = find_packages(),
-    license = 'LICENSE',
+    license = open('LICENSE').read(),
     description = 'Tech Residents Services Core Library',
     long_description = open('README').read(),
 )

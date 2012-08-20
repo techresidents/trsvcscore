@@ -2,9 +2,9 @@ from sqlalchemy import Boolean, Column, Integer, Date, DateTime, ForeignKey, Str
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
-from trsvcscore.models.base import Base
-from trsvcscore.models.django_models import User
-from trsvcscore.models.common_models import ExpertiseType, Technology
+from trsvcscore.db.models.base import Base
+from trsvcscore.db.models.django_models import User
+from trsvcscore.db.models.common_models import ExpertiseType, Technology
 
 class AccountCodeType(Base):
     __tablename__ = "accounts_codetype"
@@ -55,8 +55,29 @@ class UserProfile(Base):
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("auth_user.id"))
     developer_since = Column(Date, nullable=True)
-    email_upcoming_chats = Column(Boolean)
-    email_new_chat_topics = Column(Boolean)
+    email_upcoming_chats = Column(Boolean, default=False)
+    email_new_chat_topics = Column(Boolean, default=False)
     timezone = Column(String(255))
+    
+    #one time password
+    otp_enabled = Column(Boolean, default=False)
 
+    user = relationship(User)
+
+class OneTimePasswordType(Base):
+    __tablename__ = "accounts_one_time_password_type"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(100), unique=True)
+    description = Column(String(1024))
+
+class OneTimePassword(Base):
+    __tablename__ = "accounts_one_time_password"
+
+    id = Column(Integer, primary_key=True)
+    type_id = Column(Integer, ForeignKey("accounts_one_time_password_type.id"))
+    user_id = Column(Integer, ForeignKey("auth_user.id"))
+    secret = Column(String(1024))
+    
+    type = relationship(OneTimePasswordType)
     user = relationship(User)
