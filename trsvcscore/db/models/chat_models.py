@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, Float, Integer, DateTime, ForeignKey, String, Text
+from sqlalchemy import Boolean, Column, Float, Integer, DateTime, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -87,10 +87,12 @@ class ChatMinute(Base):
 
     id = Column(Integer, primary_key=True)
     chat_session_id = Column(Integer, ForeignKey("chat_session.id"))
+    topic_id = Column(Integer, ForeignKey("topic.id"))
     start = Column(DateTime)
     end = Column(DateTime, nullable=True)
 
     chat_session = relationship(ChatSession, backref="chat_minutes")
+    topic = relationship(Topic, backref="chat_minutes")
 
 class ChatRegistration(Base):
     __tablename__ = "chat_registration"
@@ -129,6 +131,8 @@ class ChatPersistJob(Base):
 
 class ChatTag(Base):
     __tablename__ = "chat_tag"
+    __table_args__ = (UniqueConstraint('user_id', 'chat_minute_id', 'name'),
+        )
 
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("auth_user.id"))
