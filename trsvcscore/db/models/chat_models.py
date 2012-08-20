@@ -48,7 +48,7 @@ class ChatSession(Base):
 
     id = Column(Integer, primary_key=True)
     chat_id = Column(Integer, ForeignKey("chat.id"))
-    token = Column(String(1024), nullable=True)
+    token = Column(String(1024), nullable=True, unique=True)
     participants = Column(Integer, default=0)
     start = Column(DateTime, nullable=True)
     end = Column(DateTime, nullable=True)
