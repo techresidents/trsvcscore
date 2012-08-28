@@ -126,6 +126,7 @@ class ChatPersistJob(Base):
     start = Column(DateTime, nullable=True)
     end = Column(DateTime, nullable=True)
     owner = Column(String(1024), nullable=True)
+    successful = Column(Boolean, nullable=True)
 
     chat_session = relationship(ChatSession)
 
@@ -142,7 +143,7 @@ class ChatTag(Base):
     deleted = Column(Boolean, default=False)
 
     user = relationship(User)
-    chat_minute = relationship(ChatMinute, backref="chat_tags")
+    chat_minute = relationship(ChatMinute, backref="chat_tags", cascade_backrefs=False) # chat minute will not add tag model to sesssion if it doesn't exist
     tag = relationship(Tag)
 
 class ChatSpeakingMarker(Base):
