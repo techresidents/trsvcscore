@@ -143,7 +143,7 @@ class ChatTag(Base):
     deleted = Column(Boolean, default=False)
 
     user = relationship(User)
-    chat_minute = relationship(ChatMinute, backref="chat_tags", cascade_backrefs=False) # chat minute will not add tag model to sesssion if it doesn't exist
+    chat_minute = relationship(ChatMinute, backref="chat_tags")
     tag = relationship(Tag)
 
 class ChatSpeakingMarker(Base):
