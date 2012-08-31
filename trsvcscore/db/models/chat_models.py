@@ -126,6 +126,7 @@ class ChatPersistJob(Base):
     start = Column(DateTime, nullable=True)
     end = Column(DateTime, nullable=True)
     owner = Column(String(1024), nullable=True)
+    successful = Column(Boolean, nullable=True)
 
     chat_session = relationship(ChatSession)
 
