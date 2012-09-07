@@ -127,7 +127,7 @@ class Topic(Base):
     resources = relationship(Resource, secondary=lambda: TopicResource.__table__)
 
 class TopicResource(Base):
-    __tablename__ = "topic_resource"
+    __tablename__ = "topic_resources"
 
     id = Column(Integer, primary_key=True)
     topic_id = Column(Integer, ForeignKey("topic.id"))
