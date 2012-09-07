@@ -1,7 +1,8 @@
 import datetime
 import logging
-import time
 import unittest
+
+import gevent 
 
 import testbase
 import trpycore.cloudfiles_gevent as cloudfiles
@@ -84,14 +85,14 @@ class TestCloudfilesStorage(unittest.TestCase):
         data = "this is a test"
 
         now = datetime.datetime.utcnow()
-        time.sleep(1)
+        gevent.sleep(1)
         self.assertEqual(self.storage.exists(name), False)
 
         #save object
         self.storage.save(name, data)
         self.assertEqual(self.storage.exists(name), True)
         modified_time = self.storage.modified_time(name)
-        time.sleep(1)
+        gevent.sleep(1)
         
         self.assertTrue(modified_time > now)
         self.assertTrue(modified_time < datetime.datetime.utcnow())
