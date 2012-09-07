@@ -2,6 +2,7 @@ import logging
 import time
 import unittest
 
+import testbase
 
 from tridlcore.gen import TRService
 from tridlcore.gen.ttypes import RequestContext

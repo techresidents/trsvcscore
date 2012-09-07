@@ -3,6 +3,8 @@ import unittest
 
 import gevent
 
+import testbase
+
 from tridlcore.gen import TRService
 from tridlcore.gen.ttypes import RequestContext
 

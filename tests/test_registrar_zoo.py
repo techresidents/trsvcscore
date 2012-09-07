@@ -2,6 +2,8 @@ import logging
 import unittest
 import time
 
+import testbase
+
 from tridlcore.gen import TRService
 
 from trpycore.zookeeper.client import ZookeeperClient
@@ -179,3 +181,6 @@ class TestZookeeperServiceRegistrarSessionExpiration(unittest.TestCase):
         self.assertEqual(service_info.name, "unittestsvc")
         self.assertEqual(service_info.default_endpoint().port, 10090)
         self.assertEqual(len(self.registrar.find_services("unittestsvc")), 1)
+
+if __name__ == "__main__":
+    unittest.main()
