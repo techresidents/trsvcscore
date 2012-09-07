@@ -4,9 +4,11 @@ import datetime
 import logging
 import mimetypes
 import os
+import Queue
 
 from cloudfiles.errors import NoSuchObject
 
+from trpycore.pool.queue import QueuePool
 from trsvcscore.storage.base import Storage, StorageFile, StorageFileMode
 from trsvcscore.storage import exception
 
@@ -458,3 +460,57 @@ class CloudfilesStorage(Storage):
         except Exception as error:
             logging.exception(error)
             raise exception.FileOperationFailed(str(error))
+
+
+class CloudfilesStoragePool(QueuePool):
+    """Cloudfiles storage pool.
+
+    CloudfilesStorage is not thread / greenlet safe. This class provides a mechanism
+    for pooling CloudfilesStorage objects in a thread / greenlet safe manner.
+    
+    Example usage:
+        with pool.get() as storage:
+            storage.listdir()
+    """
+    
+    def __init__(self,
+            cloudfiles_connection_factory,
+            container_name,
+            size,
+            location_base=None,
+            queue_class=Queue.Queue):
+
+        """RiakSessionStorePool constructor.
+
+        Args:
+            cloudfiles_connection_factory: Factory object to create
+                cloudfiles.Connection objects.
+            container_name: cloud files container name
+            size: Number of RiakSessionStore objects to include in pool.
+            location_base: optional location within the container
+                where files should be stored. Note that the
+                location_base will not be exposed to applications,
+                for example, in the relative filename returned
+                save().
+            queue_class: Optional Queue class. If not provided, will
+                default to Queue.Queue. The specified class must
+                have a no-arg constructor and provide a get(block, timeout)
+                method.
+        """
+        self.cloudfiles_connection_factory = cloudfiles_connection_factory
+        self.container_name = container_name
+        self.size = size
+        self.location_base = location_base
+        self.queue_class = queue_class
+        super(CloudfilesStoragePool, self).__init__(
+                self.size,
+                factory=self,
+                queue_class=self.queue_class)
+    
+    def create(self):
+        """CloudfilesStorage factory method."""
+        connection = self.cloudfiles_connection_factory.create()
+        return CloudfilesStorage(
+                connection=connection,
+                container_name=self.container_name,
+                location_base=self.location_base)
