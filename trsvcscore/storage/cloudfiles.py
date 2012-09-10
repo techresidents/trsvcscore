@@ -6,7 +6,7 @@ import mimetypes
 import os
 import Queue
 
-from cloudfiles.errors import NoSuchObject
+from cloudfiles.errors import NoSuchObject, NoSuchContainer
 
 from trpycore.pool.queue import QueuePool
 from trsvcscore.storage.base import Storage, StorageFile, StorageFileMode
@@ -27,7 +27,12 @@ class CloudfilesStorageFile(StorageFile):
     much trouble.
     """
     
-    def __init__(self, container, name, mode, content_type=None, location_base=None):
+    def __init__(self,
+            container,
+            name,
+            mode,
+            content_type=None,
+            location_base=None):
         """CloudfilesStorageFile constructor.
 
         Args:
@@ -238,7 +243,11 @@ class CloudfilesStorage(Storage):
     too much trouble.
     """
 
-    def __init__(self, connection, container_name, location_base=None):
+    def __init__(self,
+            connection,
+            container_name,
+            location_base=None,
+            create_container=False):
         """CloudfilesStorage constructor.
 
         Args:
@@ -249,11 +258,15 @@ class CloudfilesStorage(Storage):
                 location_base will not be exposed to applications,
                 for example, in the relative filename returned
                 save().
+            create_container: optional boolean indicating that the
+                container should be created if it does not already
+                exist.
         """
         self.connection = connection
         self.container_name = container_name
-        self.container = self.connection.get_container(container_name)
+        self.container = None
         self.location_base = location_base
+        self.create_container = create_container
         
         #normalize location base
         if self.location_base is not None:
@@ -261,6 +274,15 @@ class CloudfilesStorage(Storage):
                 self.location_base = self.location_base[1:]
             if not self.location_base.endswith("/"):
                 self.location_base += "/"
+        
+        #get/create container
+        try:
+            self.container = self.connection.get_container(container_name)
+        except NoSuchContainer:
+            if self.create_container:
+                self.container = self.connection.create_container(container_name)
+            else:
+                raise
     
     def _name_to_location(self, name):
         """Convert relative filename to container location.
