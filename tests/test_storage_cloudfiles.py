@@ -6,6 +6,7 @@ import unittest
 import cloudfiles
 
 import testbase
+from trpycore.cloudfiles_common.factory import CloudfilesConnectionFactory
 from trsvcscore.storage.cloudfiles import CloudfilesStorage, CloudfilesStorageFile
 from trsvcscore.storage import exception
 
@@ -15,10 +16,14 @@ class TestCloudfilesStorage(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         logging.basicConfig(level=logging.DEBUG)
-        cls.connection = cloudfiles.Connection(
-                username="techresidents",
-                api_key="6e472c9131df23960b230bfd0b936ade",
+
+        cls.connection_factory = CloudfilesConnectionFactory(
+                username="trdev",
+                api_key=None,
+                password="B88mMJqh",
                 servicenet=False)
+
+        cls.connection = cls.connection_factory.create()
         
         cls.container_name = "unittest_container"
         cls.container = cls.connection.create_container(
@@ -118,10 +123,14 @@ class TestCloudfilesStorageWithLocationBase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         logging.basicConfig(level=logging.DEBUG)
-        cls.connection = cloudfiles.Connection(
-                username="techresidents",
-                api_key="6e472c9131df23960b230bfd0b936ade",
+
+        cls.connection_factory = CloudfilesConnectionFactory(
+                username="trdev",
+                api_key=None,
+                password="B88mMJqh",
                 servicenet=False)
+
+        cls.connection = cls.connection_factory.create()
         
         cls.container_name = "unittest_container"
         cls.container = cls.connection.create_container(
@@ -243,10 +252,14 @@ class TestCloudfilesStorageFile(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         logging.basicConfig(level=logging.DEBUG)
-        cls.connection = cloudfiles.Connection(
-                username="techresidents",
-                api_key="6e472c9131df23960b230bfd0b936ade",
+
+        cls.connection_factory = CloudfilesConnectionFactory(
+                username="trdev",
+                api_key=None,
+                password="B88mMJqh",
                 servicenet=False)
+
+        cls.connection = cls.connection_factory.create()
         
         cls.container_name = "unittest_container"
         cls.container = cls.connection.create_container(
