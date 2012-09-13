@@ -5,6 +5,7 @@ import logging
 import mimetypes
 import os
 import Queue
+import StringIO
 
 from cloudfiles.errors import NoSuchObject, NoSuchContainer
 
@@ -405,14 +406,21 @@ class CloudfilesStorage(Storage):
         if self.exists(name):
             raise exception.FileOperationFailed("'%s' already exists" % name)
 
+        if isinstance(data, basestring):
+            data = StringIO.StringIO(data)
+    
         with CloudfilesStorageFile(
                 container=self.container,
                 name=name,
-                mode='w',
-                location_base=self.location_base) as f:
-            f.write(data)
+                mode="w",
+                location_base=self.location_base) as storage_file:
 
-        return name
+            while True:
+                chunk = data.read(4096)
+                if chunk:
+                    storage_file.write(chunk)
+                else:
+                    break
 
     def size(self, name):
         """Get storage file size.

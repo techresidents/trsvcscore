@@ -153,6 +153,26 @@ class StorageFile(object):
         """Close the file."""
         return
 
+    def chunks(self, chunk_size=None):
+        """Read file data in chunks of chunk_size.
+
+        Args:
+            chunk_size: optional chunk size. If None,
+                a reasonable chunk size will be chosen.
+        Yields:
+            chunk of data as a string
+        """
+        chunk_size = chunk_size or 4096
+
+        self.seek(0)
+        while True:
+            result = self.read(chunk_size)
+            if result:
+                yield result
+            else:
+                break
+
+
 
 class Storage(object):
     """Abstract storage base class representing a storage backend.

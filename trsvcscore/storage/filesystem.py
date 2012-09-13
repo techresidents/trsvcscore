@@ -288,8 +288,6 @@ class FileSystemStorage(Storage):
                 else:
                     break
         
-        return name
-
     def size(self, name):
         """Get storage file size.
 
