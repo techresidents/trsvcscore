@@ -7,6 +7,20 @@ from trsvcscore.db.models.django_models import User
 
 
 
+class NotificationPriority(Base):
+    """Notification Priority data model.
+
+    Fields:
+        name: priority name
+        description: priority type description
+    """
+    __tablename__ = "notification_priority"
+
+    id = Column(Integer, primary_key=True, unique=True)
+    name = Column(String(100), unique=True)
+    description = Column(String(1024))
+
+
 class Notification(Base):
     """Notification data model.
 
@@ -19,7 +33,7 @@ class Notification(Base):
         token: notification ID. Used to allow creators of
             Notification objects to specify an ID.
         context: the request context
-        users: User data model objects
+        recipients: User data model objects
         subject: the notification subject
         html_text: html notification body
         plain_text: plain text notification body
@@ -32,11 +46,10 @@ class Notification(Base):
     created = Column(DateTime, server_default=func.current_timestamp())
     token = Column(String(1024))
     context = Column(String(1024))
-    users = relationship(User, secondary=lambda: NotificationUser.__table__)
+    recipients = relationship(User, secondary=lambda: NotificationUser.__table__)
     subject = Column(String(1024))
     html_text = Column(Text, nullable=True)
     plain_text = Column(Text, nullable=True)
-
 
 
 class NotificationUser(Base):
@@ -52,7 +65,6 @@ class NotificationUser(Base):
 
     notification = relationship(Notification)
     user = relationship(User)
-
 
 
 class NotificationJob(Base):
@@ -96,16 +108,3 @@ class NotificationJob(Base):
     recipient = relationship(User)
     priority = relationship(NotificationPriority)
 
-
-class NotificationPriority(Base):
-    """Notification Priority data model.
-
-    Fields:
-        name: priority name
-        description: priority type description
-    """
-    __tablename__ = "notification_priority"
-
-    id = Column(Integer, primary_key=True, unique=True)
-    name = Column(String(100), unique=True)
-    description = Column(String(1024))
