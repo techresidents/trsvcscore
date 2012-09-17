@@ -85,6 +85,8 @@ class ChatArchive(Base):
     chat_session_id = Column(Integer, ForeignKey("chat_session.id"))
     mime_type_id = Column(Integer, ForeignKey("mime_type.id"))
     path = Column(String(1024))
+    length = Column(Integer, nullable=True)
+    offset = Column(Integer, nullable=True)
 
     type = relationship(ChatArchiveType)
     chat_session = relationship(ChatSession, backref="chat_archives")
