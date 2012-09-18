@@ -135,7 +135,7 @@ class GServiceHandler(TRService.Iface, Handler):
         else:
             return Status.STOPPED
 
-    def get_database_session(self):
+    def get_database_session(self, **kwargs):
         """Return new database SQLAlchemy database session.
 
         Returns:
@@ -144,7 +144,7 @@ class GServiceHandler(TRService.Iface, Handler):
             RuntimeError: If database_connection not provided to handler.
         """
         if self.DatabaseSession:
-            return self.DatabaseSession()
+            return self.DatabaseSession(**kwargs)
         else:
             raise RuntimeError("database_connection not provided")
 
