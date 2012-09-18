@@ -25,5 +25,5 @@ from trsvcscore.db.models.job_models import \
         JobRequisitionTechnology, JobTechnologyPreference
 
 from trsvcscore.db.models.notification_models import \
-        Notification, NotificationPriority, \
-        NotificationUser, NotificationJob
+        Notification, NotificationJob, \
+        NotificationUser

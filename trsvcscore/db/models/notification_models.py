@@ -7,19 +7,6 @@ from trsvcscore.db.models.django_models import User
 
 
 
-class NotificationPriority(Base):
-    """Notification Priority data model.
-
-    Fields:
-        name: priority name
-        description: priority type description
-    """
-    __tablename__ = "notification_priority"
-
-    id = Column(Integer, primary_key=True, unique=True)
-    name = Column(String(100), unique=True)
-    description = Column(String(1024))
-
 
 class Notification(Base):
     """Notification data model.
@@ -46,6 +33,7 @@ class Notification(Base):
     created = Column(DateTime, server_default=func.current_timestamp())
     token = Column(String(1024))
     context = Column(String(1024))
+    priority = Column(Integer)
     recipients = relationship(User, secondary=lambda: NotificationUser.__table__)
     subject = Column(String(1024))
     html_text = Column(Text, nullable=True)
@@ -95,7 +83,7 @@ class NotificationJob(Base):
     id = Column(Integer, primary_key=True)
     notification_id = Column(Integer, ForeignKey("notification.id"))
     recipient_id = Column(Integer, ForeignKey("auth_user.id"))
-    priority_id = Column(Integer, ForeignKey("notification_priority.id"))
+    priority = Column(Integer)
     created = Column(DateTime, server_default=func.current_timestamp())
     not_before = Column(DateTime, server_default=func.current_timestamp())
     start = Column(DateTime, nullable=True)
@@ -106,5 +94,4 @@ class NotificationJob(Base):
 
     notification = relationship(Notification, backref="notification_jobs")
     recipient = relationship(User)
-    priority = relationship(NotificationPriority)
 
