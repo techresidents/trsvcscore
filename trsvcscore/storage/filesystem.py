@@ -115,7 +115,17 @@ class FileSystemStorageFile(StorageFile):
         """
         if self.file:
             try:
-                self.file.write(data)
+                if isinstance(data, basestring):
+                    self.file.write(data)
+                elif hasattr(data, "read"):
+                    while True:
+                        chunk = data.read(4096)
+                        if chunk:
+                            self.file.write(chunk)
+                        else:
+                            break
+                else:
+                    raise RuntimeError("invalid data argument")
             except Exception as error:
                 raise exception.FileOperationFailed(str(error))
         else:
@@ -277,16 +287,8 @@ class FileSystemStorage(Storage):
         if os.path.exists(path):
             raise exception.FileOperationFailed("'%s' already exists" % name)
 
-        if isinstance(data, basestring):
-            data = StringIO.StringIO(data)
-    
         with FileSystemStorageFile(self.location, name, "w") as storage_file:
-            while True:
-                chunk = data.read(4096)
-                if chunk:
-                    storage_file.write(chunk)
-                else:
-                    break
+                storage_file.write(data)
         
     def size(self, name):
         """Get storage file size.

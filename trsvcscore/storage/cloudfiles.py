@@ -5,7 +5,6 @@ import logging
 import mimetypes
 import os
 import Queue
-import StringIO
 
 from cloudfiles.errors import NoSuchObject, NoSuchContainer
 
@@ -183,7 +182,13 @@ class CloudfilesStorageFile(StorageFile):
         try:
             if self.content_type:
                 self.object.content_type = self.content_type
-            self.object.write(data)
+            
+            if isinstance(data, basestring):
+                self.object.write(data)
+            elif hasattr(data, "read"):
+                self.object.send(data)
+            else:
+                raise RuntimeError("Invalid data argument")
             self.offset = self.object.size
         except Exception as error:
             logging.exception(error)
@@ -406,21 +411,14 @@ class CloudfilesStorage(Storage):
         if self.exists(name):
             raise exception.FileOperationFailed("'%s' already exists" % name)
 
-        if isinstance(data, basestring):
-            data = StringIO.StringIO(data)
-    
         with CloudfilesStorageFile(
                 container=self.container,
                 name=name,
                 mode="w",
                 location_base=self.location_base) as storage_file:
 
-            while True:
-                chunk = data.read(4096)
-                if chunk:
-                    storage_file.write(chunk)
-                else:
-                    break
+            storage_file.write(data)
+
 
     def size(self, name):
         """Get storage file size.
