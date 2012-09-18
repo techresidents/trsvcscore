@@ -124,7 +124,6 @@ class FileSystemStorageFile(StorageFile):
                             self.file.write(chunk)
                         else:
                             break
-                        self.file.write(data)
                 else:
                     raise RuntimeError("invalid data argument")
             except Exception as error:

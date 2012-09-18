@@ -313,6 +313,8 @@ class DatabaseJobQueue(object):
         query = db_session.query(self.model_class)
         for filter in self._query_filters():
             query = query.filter(filter)
+        if hasattr(self.model_class, "priority"):
+            query.order_by(self.model_class.priority)
         return query
     
     def _add_stop_items(self):
