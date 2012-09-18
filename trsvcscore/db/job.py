@@ -80,7 +80,16 @@ class DatabaseJob(object):
         Raises:
             JobOwned if the job is already owned.
         """
-        self.db_session = self.db_session_factory()
+        #create session with expire_on_commit set to False,
+        #so that we can detach self.model for use outside
+        #of the context manager. If expire_on_commit were
+        #set to the default value of True, sqlalchemy would
+        #immediately begin a new transaction following the
+        #commit. In this new transaction, self.model would
+        #not have been read, and not be available for use
+        #as a detached model following a call to expunge(),
+        #without first being refresh()'d.
+        self.db_session = self.db_session_factory(expire_on_commit=False)
         self.model = self._start()
         return self.model
     
@@ -102,6 +111,14 @@ class DatabaseJob(object):
                 self._end()
         finally:
             if self.db_session:
+                if self.model:
+                    #Note that refresh() is no longer needed now that
+                    #the session is being created with expire_on_commit
+                    #set to false. Without this, refresh() is neeeded
+                    #to detach self.model so it can be accessed once the
+                    #context manager block is exited.
+                    #self.db_session.refresh(self.model)
+                    self.db_session.expunge(self.model)
                 self.db_session.close()
                 self.db_session = None
     
