@@ -3,6 +3,8 @@ import unittest
 
 import gevent
 
+import testbase
+
 from tridlcore.gen import TRService
 from tridlcore.gen.ttypes import RequestContext
 
@@ -148,3 +150,7 @@ class TestServiceSessionExpiration(unittest.TestCase):
     
         version = proxy.getVersion(self.request_context)
         self.assertEqual(version, "VERSION")
+
+
+if __name__ == "__main__":
+    unittest.main()

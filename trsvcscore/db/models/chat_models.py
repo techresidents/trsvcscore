@@ -4,27 +4,27 @@ from sqlalchemy.sql import func
 
 from trsvcscore.db.models.base import Base
 from trsvcscore.db.models.django_models import User
-from trsvcscore.db.models.common_models import Tag, Topic, Quality
+from trsvcscore.db.models.common_models import MimeType, Tag, Topic, Quality
 
 class ChatType(Base):
     __tablename__ = "chat_type"
 
     id = Column(Integer, primary_key=True, unique=True)
-    name = Column(String(100))
+    name = Column(String(100), unique=True)
     description = Column(String(1024))
 
 class ChatMessageType(Base):
     __tablename__ = "chat_message_type"
 
     id = Column(Integer, primary_key=True, unique=True)
-    name = Column(String(100))
+    name = Column(String(100), unique=True)
     description = Column(String(1024))
 
 class ChatMessageFormatType(Base):
     __tablename__ = "chat_message_format_type"
 
     id = Column(Integer, primary_key=True, unique=True)
-    name = Column(String(100))
+    name = Column(String(100), unique=True)
     description = Column(String(1024))
 
 class Chat(Base):
@@ -39,6 +39,7 @@ class Chat(Base):
     registration_end = Column(DateTime, nullable=True)
     checkin_start = Column(DateTime, nullable=True)
     checkin_end = Column(DateTime, nullable=True)
+    record = Column(Boolean, default=False)
 
     type = relationship(ChatType)
     topic = relationship(Topic, backref="chats")
@@ -58,6 +59,8 @@ class ChatSession(Base):
 
 class ChatUser(Base):
     __tablename__ = "chat_user"
+    __table_args__ = (UniqueConstraint('chat_session_id', 'user_id'),
+        )
 
     id = Column(Integer, primary_key=True)
     chat_session_id = Column(Integer, ForeignKey("chat_session.id"))
@@ -66,6 +69,40 @@ class ChatUser(Base):
     participant = Column(Integer)
 
     chat_session = relationship(ChatSession, backref="chat_users")
+    user = relationship(User)
+
+class ChatArchiveType(Base):
+    __tablename__ = "chat_archive_type"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(100), unique=True)
+    description = Column(String(1024))
+
+class ChatArchive(Base):
+    __tablename__ = "chat_archive"
+
+    id = Column(Integer, primary_key=True)
+    type_id = Column(Integer, ForeignKey("chat_archive_type.id"))
+    chat_session_id = Column(Integer, ForeignKey("chat_session.id"))
+    mime_type_id = Column(Integer, ForeignKey("mime_type.id"))
+    path = Column(String(1024))
+    public = Column(Boolean, default=False)
+    length = Column(Integer, nullable=True)
+    offset = Column(Integer, nullable=True)
+
+    type = relationship(ChatArchiveType)
+    chat_session = relationship(ChatSession, backref="chat_archives")
+    mime_type = relationship(MimeType)
+    users = relationship(User, secondary=lambda: ChatArchiveUser.__table__)
+
+class ChatArchiveUser(Base):
+    __tablename__ = "chat_archive_user"
+
+    id = Column(Integer, primary_key=True)
+    chat_archive_id = Column(Integer, ForeignKey("chat_archive.id"))
+    user_id = Column(Integer, ForeignKey("auth_user.id"))
+
+    chat_archive = relationship(ChatArchive)
     user = relationship(User)
 
 class ChatFeedback(Base):
@@ -127,6 +164,21 @@ class ChatPersistJob(Base):
     end = Column(DateTime, nullable=True)
     owner = Column(String(1024), nullable=True)
     successful = Column(Boolean, nullable=True)
+
+    chat_session = relationship(ChatSession)
+
+class ChatArchiveJob(Base):
+    __tablename__ = "chat_archive_job"
+
+    id = Column(Integer, primary_key=True)
+    chat_session_id = Column(Integer, ForeignKey("chat_session.id"))
+    created = Column(DateTime, server_default=func.current_timestamp())
+    not_before = Column(DateTime, server_default=func.current_timestamp())
+    start = Column(DateTime, nullable=True)
+    end = Column(DateTime, nullable=True)
+    owner = Column(String(1024), nullable=True)
+    successful = Column(Boolean, nullable=True)
+    retries_remaining = Column(Integer)
 
     chat_session = relationship(ChatSession)
 

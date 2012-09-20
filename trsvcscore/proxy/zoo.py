@@ -6,8 +6,7 @@ from thrift import Thrift
 from thrift.transport.TTransport import TTransportException
 
 from trpycore.pool.queue import QueuePool
-from trpycore.zookeeper_gevent.client import GZookeeperClient
-from trpycore.zookeeper_gevent.watch import GChildrenWatch
+from trpycore.zookeeper.client import ZookeeperClient
 from trpycore.zookeeper.watch import ChildrenWatch
 from trsvcscore.registrar.zoo import ZookeeperServiceRegistrar
 from trsvcscore.proxy.base import ServiceProxyException, ServiceProxy
@@ -70,10 +69,10 @@ class ZookeeperServiceProxy(ServiceProxy):
                 be kept open between requests. If false, transport
                 will be opened and closed for each service request.
         """
-        if isinstance(zookeeper_client, GZookeeperClient):
-            is_gevent = True
-        else:
+        if isinstance(zookeeper_client, ZookeeperClient):
             is_gevent = False
+        else:
+            is_gevent = True
         
         super(ZookeeperServiceProxy, self).__init__(
                 service_name,
@@ -105,6 +104,7 @@ class ZookeeperServiceProxy(ServiceProxy):
         
         #If we're in a gevent app adjust the lock, and watch accordingly.
         if self.is_gevent:
+            from trpycore.zookeeper_gevent.watch import GChildrenWatch
             self.watch = GChildrenWatch(self.zookeeper_client, self.registry_path, self._watch)
             self.lock = self.NoOpLock()
         else:

@@ -15,7 +15,7 @@ class Concept(Base):
 
     id = Column(Integer, primary_key=True)
     parent_id = Column(Integer, ForeignKey("concept.id"))
-    name = Column(String(100))
+    name = Column(String(100), unique=True)
     description = Column(String(1024))
 
     children = relationship("Concept", backref=backref("parent", remote_side=[id]))
@@ -24,7 +24,7 @@ class ExpertiseType(Base):
     __tablename__ = "expertise_type"
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(100))
+    name = Column(String(100), unique=True)
     value = Column(Integer)
     description = Column(String(1024))
 
@@ -49,7 +49,7 @@ class Organization(Base):
     __tablename__ = "organization"
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(100))
+    name = Column(String(100), unique=True)
     description = Column(String(1024))
 
 
@@ -57,7 +57,7 @@ class Tag(Base):
     __tablename__ = "tag"
 
     id = Column(Integer, primary_key=True, unique=True)
-    name = Column(String(100))
+    name = Column(String(100), unique=True)
     concept_id = Column(Integer, ForeignKey("concept.id"))
 
     concept = relationship(Concept)
@@ -66,7 +66,7 @@ class TechnologyType(Base):
     __tablename__ = "technology_type"
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(100))
+    name = Column(String(100), unique=True)
     description = Column(String(1024))
 
 class Technology(Base):
@@ -74,21 +74,21 @@ class Technology(Base):
 
     id = Column(Integer, primary_key=True)
     type_id = Column(Integer, ForeignKey("technology_type.id"))
-    name = Column(String(100))
+    name = Column(String(100), unique=True)
     description = Column(String(1024))
 
 class Quality(Base):
     __tablename__ = "quality"
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(100))
+    name = Column(String(100), unique=True)
     description = Column(String(1024))
 
 class ResourceType(Base):
     __tablename__ = "resource_type"
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(100))
+    name = Column(String(100), unique=True)
     description = Column(String(1024))
 
 class Resource(Base):
@@ -105,7 +105,7 @@ class TopicType(Base):
     __tablename__ = "topic_type"
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(100))
+    name = Column(String(100), unique=True)
     description = Column(String(1024))
 
 class Topic(Base):
