@@ -39,6 +39,7 @@ class Chat(Base):
     registration_end = Column(DateTime, nullable=True)
     checkin_start = Column(DateTime, nullable=True)
     checkin_end = Column(DateTime, nullable=True)
+    record = Column(Boolean, default=False)
 
     type = relationship(ChatType)
     topic = relationship(Topic, backref="chats")
