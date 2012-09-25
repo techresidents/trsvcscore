@@ -20,6 +20,7 @@ class Notification(Base):
         token: notification ID. Used to allow creators of
             Notification objects to specify an ID.
         context: the request context
+        priority: Priority level integer
         recipients: User data model objects
         subject: the notification subject
         html_text: html notification body
@@ -62,8 +63,8 @@ class NotificationJob(Base):
 
     Fields:
         notification: Notification data model object
-        priority: NotificationPriority data model object
         recipient: User data model object
+        priority: Priority level integer
         created: datetime object containing the time
             the job was created.
         not_before: datetime object containing the
