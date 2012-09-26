@@ -16,7 +16,7 @@ def find_packages():
 
 setup(
     name='trsvcscore',
-    version = '0.12.0',
+    version = '0.13-SNAPSHOT',
     author = 'Tech Residents, Inc.',
     packages = find_packages(),
     license = open('LICENSE').read(),
