@@ -23,3 +23,7 @@ from trsvcscore.db.models.job_models import \
         JobPositionType, JobPositionTypePreference, \
         JobPreferences, JobRequisition, JobRequisitionLocation, \
         JobRequisitionTechnology, JobTechnologyPreference
+
+from trsvcscore.db.models.notification_models import \
+        Notification, NotificationJob, \
+        NotificationUser
