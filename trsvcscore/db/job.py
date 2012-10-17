@@ -208,6 +208,13 @@ class DatabaseJob(object):
 
     def _end(self):
         """End database job."""
+        #Note that we need to commit before updating the end
+        #timstamp with CURRENT_TIMESTAMP, since CURRENT_TIMESTAMP
+        #resolves to the time the transaction is started. And
+        #SQLAlchemy will, by default, automatically start a new
+        #transaction immediately following the commit of the
+        #start timestamp.
+        self.db_session.commit()
         for attribute, value in self._end_update_values().items():
             if hasattr(self.model_class, attribute):
                 setattr(self.model, attribute, value)

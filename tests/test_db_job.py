@@ -80,6 +80,30 @@ class TestDatabaseJob(unittest.TestCase):
             session.refresh(job)
             self.assertTrue(job.successful)
             self.assertTrue(job.start < job.end)
+
+    def test_long_job(self):
+        test_start_time = tz.utcnow()
+
+        with self.assertRaises(QueueEmpty):
+            self.db_queue.get(False)
+
+        with self._archive_job(1) as (session, job):
+            time.sleep(2)
+            with self.db_queue.get(True, 10) as db_job:
+                time.sleep(10)
+                self.assertEqual(job.id, db_job.id)
+                self.assertEqual(job.chat_session_id, db_job.chat_session_id)
+                self.assertEqual(job.created, db_job.created)
+                self.assertEqual(db_job.owner, "unittest")
+                self.assertIsNone(db_job.end)
+                self.assertIsNone(db_job.successful)
+                self.assertTrue(tz.utcnow() > db_job.start)
+                self.assertTrue(test_start_time < db_job.start)
+            session.refresh(job)
+            self.assertTrue(job.successful)
+            self.assertTrue(job.start < job.end)
+            time.sleep(4)
+            self.assertTrue((job.end - job.start).seconds >= 10)
     
     def test_get_failed_processing(self):
         test_start_time = tz.utcnow()
