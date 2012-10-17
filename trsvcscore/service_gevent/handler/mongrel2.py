@@ -14,7 +14,9 @@ class GMongrel2Handler(Handler):
        
      Incoming http requests will be delegated to method handlers
      based on a list of url_handlers. Each list entry will
-     be a (url_regex_pattern, handler_method_name) tuple.
+     be a (url_regex_pattern, handler_method) tuple. 
+     handler_method may be a method, or a string in which
+     case the handler method of specfied name will be used.
 
      In order to find the appropriate handler method, the
      absolute request url will be compared against each
@@ -84,11 +86,12 @@ class GMongrel2Handler(Handler):
         self.url_handlers = []
         self.running = False
         self.stop_event = Event()
-
+        
         #Compile url regular expressions
-        for url_regex, handler_name in url_handlers or []:
-            self.url_handlers.append((re.compile(url_regex), handler_name))
-
+        for url_regex, handler in url_handlers or []:
+            if isinstance(handler, basestring):
+                handler = getattr(self, handler)
+            self.url_handlers.append((re.compile(url_regex), handler))
     
     def start(self):
         """Start handler."""
@@ -162,7 +165,7 @@ class GMongrel2Handler(Handler):
             match = None
 
             #Find the handler for the incoming request
-            for url_regex, handler_name in self.url_handlers:
+            for url_regex, handler in self.url_handlers:
                 match = url_regex.match(url)
                 if match:
                     break
@@ -171,21 +174,16 @@ class GMongrel2Handler(Handler):
                 raise HttpError(404, "not found")
             
             #Process the request
-            handler = getattr(self, handler_name)
             response = handler(request, **match.groupdict())
             connection.reply_http(
                     unsafe_request,
-                    body=response.data,
+                    body=response.data or "",
                     code=response.code,
                     headers=response.headers)
         
         except HttpError as error:
             connection.reply_http(unsafe_request, error.response, code=error.http_code)
 
-        except AttributeError as error:
-            logging.exception(error)
-            connection.reply_http(unsafe_request, "not found", code=404)
-        
         except Exception as error:
             logging.exception(error)
             connection.reply_http(unsafe_request, "internal error", code=500)

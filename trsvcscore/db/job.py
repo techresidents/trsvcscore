@@ -83,11 +83,8 @@ class DatabaseJob(object):
         #create session with expire_on_commit set to False,
         #so that we can detach self.model for use outside
         #of the context manager. If expire_on_commit were
-        #set to the default value of True, sqlalchemy would
-        #immediately begin a new transaction following the
-        #commit. In this new transaction, self.model would
-        #not have been read, and not be available for use
-        #as a detached model following a call to expunge(),
+        #set to the default value of True, self.model would
+        #not be available for use as a detached model following
         #without first being refresh()'d.
         self.db_session = self.db_session_factory(expire_on_commit=False)
         self.model = self._start()
@@ -201,6 +198,8 @@ class DatabaseJob(object):
 
         if not rows_updated:
             raise JobOwned("%s(id=%s) already owned") % (self.model_class, self.model_id)
+        
+        self.db_session.commit()
 
         model = self.db_session.query(self.model_class)\
                 .get(self.model_id)

@@ -57,6 +57,7 @@ class UserProfile(Base):
     developer_since = Column(Date, nullable=True)
     email_upcoming_chats = Column(Boolean, default=False)
     email_new_chat_topics = Column(Boolean, default=False)
+    email_new_job_opps = Column(Boolean, default=True)
     timezone = Column(String(255))
     
     #one time password

@@ -118,7 +118,9 @@ class Topic(Base):
     title = Column(String(100))
     description = Column(String(2048))
     duration = Column(Integer)
-    public = Column(Boolean)
+    recommended_participants = Column(Integer)
+    public = Column(Boolean, default=True)
+    active = Column(Boolean, default=True)
     user_id = Column(Integer, ForeignKey("auth_user.id"))
 
     children = relationship("Topic", backref=backref("parent", remote_side=[id]))

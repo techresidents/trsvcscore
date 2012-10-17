@@ -11,7 +11,6 @@ class JobPreferences(Base):
 
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("auth_user.id"))
-    email_new_job_opps = Column(Boolean)
 
 class JobPositionType(Base):
     __tablename__ = "job_positiontype"
