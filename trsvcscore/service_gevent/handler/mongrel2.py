@@ -48,6 +48,7 @@ class GMongrel2Handler(Handler):
             self.data = data 
             self.code = code
             self.headers = headers or {}
+            self.headers["cache-control"] = "no-cache"
     
     class JsonResponse(Response):
         """Mongrel2 JSON response."""
