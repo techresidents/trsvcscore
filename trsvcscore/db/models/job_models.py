@@ -1,6 +1,5 @@
-from sqlalchemy import Boolean, Column, Integer, Date, DateTime, ForeignKey, String
+from sqlalchemy import Boolean, Column, Integer, Date, ForeignKey, String
 from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func
 
 from trsvcscore.db.models.base import Base
 from trsvcscore.db.models.django_models import User
@@ -25,6 +24,8 @@ class JobPositionTypePreference(Base):
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("auth_user.id"))
     position_type_id = Column(Integer, ForeignKey("job_positiontype.id"))
+    salary_start = Column(Integer, nullable=True)
+    salary_end = Column(Integer, nullable=True)
 
     user = relationship(User)
     position_type = relationship(JobPositionType)

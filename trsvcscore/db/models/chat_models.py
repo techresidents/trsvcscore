@@ -51,6 +51,8 @@ class ChatSession(Base):
     chat_id = Column(Integer, ForeignKey("chat.id"))
     token = Column(String(1024), nullable=True, unique=True)
     participants = Column(Integer, default=0)
+    connect = Column(DateTime, nullable=True)
+    publish = Column(DateTime, nullable=True)
     start = Column(DateTime, nullable=True)
     end = Column(DateTime, nullable=True)
 
@@ -191,6 +193,7 @@ class ChatTag(Base):
     user_id = Column(Integer, ForeignKey("auth_user.id"))
     chat_minute_id = Column(Integer, ForeignKey("chat_minute.id"))
     tag_id = Column(Integer, ForeignKey("tag.id"), nullable=True)
+    time = Column(DateTime)
     name = Column(String(1024))
     deleted = Column(Boolean, default=False)
 
