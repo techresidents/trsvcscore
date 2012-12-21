@@ -228,3 +228,16 @@ class ChatMessage(Base):
     chat_session = relationship(ChatSession)
     type = relationship(ChatMessageType)
     format_type = relationship(ChatMessageFormatType)
+
+class ChatHighlightSession(Base):
+    __tablename__ = "chat_highlight_session"
+    __table_args__ = (UniqueConstraint('chat_session_id', 'user_id'),
+        )
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("auth_user.id"))
+    chat_session_id = Column(Integer, ForeignKey("chat_session.id"))
+    rank = Column(Integer)
+
+    user = relationship(User, backref="chat_highlight_sessions")
+    chat_session = relationship(ChatSession)
