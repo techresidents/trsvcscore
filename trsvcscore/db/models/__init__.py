@@ -16,7 +16,8 @@ from trsvcscore.db.models.chat_models import \
         ChatMinute, ChatRegistration, ChatScheduleJob, \
 	    ChatPersistJob, ChatMessage, ChatMessageType, \
         ChatMessageFormatType, ChatTag, ChatSpeakingMarker, \
-        ChatArchive, ChatArchiveType, ChatArchiveUser, ChatArchiveJob
+        ChatArchive, ChatArchiveType, ChatArchiveUser, ChatArchiveJob, \
+        ChatHighlightSession
 
 from trsvcscore.db.models.job_models import \
         JobLocationPreference, JobOrganizationPreference, \
