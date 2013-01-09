@@ -89,6 +89,8 @@ class ChatArchive(Base):
     mime_type_id = Column(Integer, ForeignKey("mime_type.id"))
     path = Column(String(1024))
     public = Column(Boolean, default=False)
+    waveform = Column(Text)
+    waveform_path = Column(String(1024))
     length = Column(Integer, nullable=True)
     offset = Column(Integer, nullable=True)
 
