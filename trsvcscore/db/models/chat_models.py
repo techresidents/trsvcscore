@@ -3,7 +3,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from trsvcscore.db.models.base import Base
-from trsvcscore.db.models.django_models import User
+from trsvcscore.db.models.accounts_models import User
 from trsvcscore.db.models.common_models import MimeType, Tag, Topic, Quality
 
 class ChatType(Base):
@@ -66,7 +66,7 @@ class ChatUser(Base):
 
     id = Column(Integer, primary_key=True)
     chat_session_id = Column(Integer, ForeignKey("chat_session.id"))
-    user_id = Column(Integer, ForeignKey("auth_user.id"))
+    user_id = Column(Integer, ForeignKey("accounts_user.id"))
     token = Column(String(1024), nullable=True)
     participant = Column(Integer)
 
@@ -104,7 +104,7 @@ class ChatArchiveUser(Base):
 
     id = Column(Integer, primary_key=True)
     chat_archive_id = Column(Integer, ForeignKey("chat_archive.id"))
-    user_id = Column(Integer, ForeignKey("auth_user.id"))
+    user_id = Column(Integer, ForeignKey("accounts_user.id"))
 
     chat_archive = relationship(ChatArchive)
     user = relationship(User)
@@ -114,7 +114,7 @@ class ChatFeedback(Base):
 
     id = Column(Integer, primary_key=True)
     chat_session_id = Column(Integer, ForeignKey("chat_session.id"))
-    user_id = Column(Integer, ForeignKey("auth_user.id"))
+    user_id = Column(Integer, ForeignKey("accounts_user.id"))
     overall_quality_id = Column(Integer, ForeignKey("quality.id"))
     technical_quality_id = Column(Integer, ForeignKey("quality.id"))
 
@@ -140,7 +140,7 @@ class ChatRegistration(Base):
 
     id = Column(Integer, primary_key=True)
     chat_id = Column(Integer, ForeignKey("chat.id"))
-    user_id = Column(Integer, ForeignKey("auth_user.id"))
+    user_id = Column(Integer, ForeignKey("accounts_user.id"))
     chat_session_id = Column(Integer, ForeignKey("chat_session.id"), nullable=True)
     checked_in = Column(Boolean, default=False)
 
@@ -192,7 +192,7 @@ class ChatTag(Base):
         )
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("auth_user.id"))
+    user_id = Column(Integer, ForeignKey("accounts_user.id"))
     chat_minute_id = Column(Integer, ForeignKey("chat_minute.id"))
     tag_id = Column(Integer, ForeignKey("tag.id"), nullable=True)
     time = Column(DateTime)
@@ -207,7 +207,7 @@ class ChatSpeakingMarker(Base):
     __tablename__ = "chat_speaking_marker"
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("auth_user.id"))
+    user_id = Column(Integer, ForeignKey("accounts_user.id"))
     chat_minute_id = Column(Integer, ForeignKey("chat_minute.id"))
     start = Column(DateTime)
     end = Column(DateTime)
@@ -237,7 +237,7 @@ class ChatHighlightSession(Base):
         )
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("auth_user.id"))
+    user_id = Column(Integer, ForeignKey("accounts_user.id"))
     chat_session_id = Column(Integer, ForeignKey("chat_session.id"))
     rank = Column(Integer)
 

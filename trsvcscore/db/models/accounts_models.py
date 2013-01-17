@@ -3,8 +3,32 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from trsvcscore.db.models.base import Base
-from trsvcscore.db.models.django_models import User
-from trsvcscore.db.models.common_models import ExpertiseType, Technology
+
+class Tenant(Base):
+    __tablename__ = "accounts_tenant"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(100))
+    domain = Column(String(255))
+
+class User(Base):
+    __tablename__ = "accounts_user"
+
+    id = Column(Integer, primary_key=True)
+    tenant_id = Column(Integer, ForeignKey("accounts_tenant.id"))
+    username = Column(String(254))
+    first_name = Column(String(30))
+    last_name = Column(String(30))
+    email = Column(String(254))
+    password = Column(String(128))
+    is_staff = Column(Boolean)
+    is_active = Column(Boolean)
+    last_login = Column(DateTime)
+    date_joined = Column(DateTime)
+    type = Column(String(75))
+    otp_enabled = Column(Boolean, default=False)
+
+    tenant = relationship(Tenant)
 
 class AccountCodeType(Base):
     __tablename__ = "accounts_codetype"
@@ -17,7 +41,7 @@ class AccountCode(Base):
     __tablename__ = "accounts_code"
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("auth_user.id"))
+    user_id = Column(Integer, ForeignKey("accounts_user.id"))
     type_id = Column(Integer, ForeignKey("accounts_codetype.id"))
     code = Column(String(255))
     created = Column(DateTime, server_default=func.current_timestamp())
@@ -36,32 +60,23 @@ class AccountRequest(Base):
     code = Column(String(255))
     created = Column(DateTime, server_default=func.current_timestamp())
 
-class Skill(Base):
-    __tablename__ = "accounts_skill"
+class DeveloperProfile(Base):
+    __tablename__ = "accounts_developer_profile"
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("auth_user.id"))
-    technology_id = Column(Integer, ForeignKey("technology.id"))
-    expertise_type_id = Column(Integer, ForeignKey("expertise_type.id"))
-    yrs_experience = Column(Integer)
-
-    user = relationship(User)
-    technology = relationship(Technology)
-    expertise_type = relationship(ExpertiseType)
-
-class UserProfile(Base):
-    __tablename__ = "accounts_userprofile"
-
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("auth_user.id"))
+    user_id = Column(Integer, ForeignKey("accounts_user.id"))
     developer_since = Column(Date, nullable=True)
     email_upcoming_chats = Column(Boolean, default=False)
     email_new_chat_topics = Column(Boolean, default=False)
     email_new_job_opps = Column(Boolean, default=True)
-    timezone = Column(String(255))
-    
-    #one time password
-    otp_enabled = Column(Boolean, default=False)
+
+    user = relationship(User)
+
+class EmployerProfile(Base):
+    __tablename__ = "accounts_employer_profile"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("accounts_user.id"))
 
     user = relationship(User)
 
@@ -77,7 +92,7 @@ class OneTimePassword(Base):
 
     id = Column(Integer, primary_key=True)
     type_id = Column(Integer, ForeignKey("accounts_one_time_password_type.id"))
-    user_id = Column(Integer, ForeignKey("auth_user.id"))
+    user_id = Column(Integer, ForeignKey("accounts_user.id"))
     secret = Column(String(1024))
     
     type = relationship(OneTimePasswordType)
