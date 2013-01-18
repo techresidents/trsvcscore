@@ -25,7 +25,6 @@ class User(Base):
     is_active = Column(Boolean)
     last_login = Column(DateTime)
     date_joined = Column(DateTime)
-    type = Column(String(75))
     otp_enabled = Column(Boolean, default=False)
 
     tenant = relationship(Tenant)
