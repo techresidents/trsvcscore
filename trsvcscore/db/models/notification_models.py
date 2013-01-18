@@ -1,11 +1,9 @@
-from sqlalchemy import Boolean, Column, Float, Integer, DateTime, ForeignKey, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, Column, Integer, DateTime, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from trsvcscore.db.models.base import Base
-from trsvcscore.db.models.django_models import User
-
-
+from trsvcscore.db.models.accounts_models import User
 
 
 class Notification(Base):
@@ -50,7 +48,7 @@ class NotificationUser(Base):
 
     id = Column(Integer, primary_key=True)
     notification_id = Column(Integer, ForeignKey("notification.id"))
-    user_id = Column(Integer, ForeignKey("auth_user.id"))
+    user_id = Column(Integer, ForeignKey("accounts_user.id"))
 
     notification = relationship(Notification)
     user = relationship(User)
@@ -83,7 +81,7 @@ class NotificationJob(Base):
 
     id = Column(Integer, primary_key=True)
     notification_id = Column(Integer, ForeignKey("notification.id"))
-    recipient_id = Column(Integer, ForeignKey("auth_user.id"))
+    recipient_id = Column(Integer, ForeignKey("accounts_user.id"))
     priority = Column(Integer)
     created = Column(DateTime, server_default=func.current_timestamp())
     not_before = Column(DateTime, server_default=func.current_timestamp())

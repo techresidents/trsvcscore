@@ -2,7 +2,7 @@ from sqlalchemy import Boolean, Column, Integer, DateTime, String
 
 from trsvcscore.db.models.base import Base
 
-class User(Base):
+class AuthUser(Base):
     __tablename__ = "auth_user"
 
     id = Column(Integer, primary_key=True)

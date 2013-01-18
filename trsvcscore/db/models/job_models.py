@@ -2,14 +2,14 @@ from sqlalchemy import Boolean, Column, Integer, Date, ForeignKey, String
 from sqlalchemy.orm import relationship
 
 from trsvcscore.db.models.base import Base
-from trsvcscore.db.models.django_models import User
+from trsvcscore.db.models.accounts_models import User
 from trsvcscore.db.models.common_models import Location, Organization, Technology
 
 class JobPreferences(Base):
     __tablename__ = "job_prefs"
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("auth_user.id"))
+    user_id = Column(Integer, ForeignKey("accounts_user.id"))
 
 class JobPositionType(Base):
     __tablename__ = "job_positiontype"
@@ -22,7 +22,7 @@ class JobPositionTypePreference(Base):
     __tablename__ = "job_positiontypepref"
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("auth_user.id"))
+    user_id = Column(Integer, ForeignKey("accounts_user.id"))
     position_type_id = Column(Integer, ForeignKey("job_positiontype.id"))
     salary_start = Column(Integer, nullable=True)
     salary_end = Column(Integer, nullable=True)
@@ -34,7 +34,7 @@ class JobLocationPreference(Base):
     __tablename__ = "job_locationpref"
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("auth_user.id"))
+    user_id = Column(Integer, ForeignKey("accounts_user.id"))
     location_id = Column(Integer, ForeignKey("location.id"))
 
     user = relationship(User)
@@ -44,7 +44,7 @@ class JobOrganizationPreference(Base):
     __tablename__ = "job_organizationpref"
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("auth_user.id"))
+    user_id = Column(Integer, ForeignKey("accounts_user.id"))
     organization_id = Column(Integer, ForeignKey("organization.id"))
 
     user = relationship(User)
@@ -54,7 +54,7 @@ class JobTechnologyPreference(Base):
     __tablename__ = "job_technologypref"
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("auth_user.id"))
+    user_id = Column(Integer, ForeignKey("accounts_user.id"))
     technology_id = Column(Integer, ForeignKey("technology.id"))
 
     user = relationship(User)

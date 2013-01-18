@@ -2,7 +2,7 @@ from sqlalchemy import Boolean, Column, Integer, ForeignKey, String
 from sqlalchemy.orm import relationship, backref
 
 from trsvcscore.db.models.base import Base
-from trsvcscore.db.models.django_models import User
+from trsvcscore.db.models.accounts_models import User
 
 RESOURCE_TYPES = {
     "DOCUMENT": 1,
@@ -121,7 +121,7 @@ class Topic(Base):
     recommended_participants = Column(Integer)
     public = Column(Boolean, default=True)
     active = Column(Boolean, default=True)
-    user_id = Column(Integer, ForeignKey("auth_user.id"))
+    user_id = Column(Integer, ForeignKey("accounts_user.id"))
 
     children = relationship("Topic", backref=backref("parent", remote_side=[id]))
     type = relationship(TopicType)
@@ -187,4 +187,15 @@ class CodeboardResource(Resource):
 
     codeboard = relationship(Codeboard)
 
+class Skill(Base):
+    __tablename__ = "skill"
 
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("accounts_user.id"))
+    technology_id = Column(Integer, ForeignKey("technology.id"))
+    expertise_type_id = Column(Integer, ForeignKey("expertise_type.id"))
+    yrs_experience = Column(Integer)
+
+    user = relationship(User)
+    technology = relationship(Technology)
+    expertise_type = relationship(ExpertiseType)
