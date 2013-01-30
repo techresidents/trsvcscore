@@ -103,38 +103,6 @@ class JobPositionTypePref(Base):
     user = relationship(User)
     position_type = relationship(JobPositionType)
 
-class JobInterviewOfferType(Base):
-    __tablename__ = "job_interview_offer_type"
-
-    id = Column(Integer, primary_key=True)
-    name = Column(String(100))
-    description = Column(String(1024))
-
-class JobInterviewOfferStatus(Base):
-    __tablename__ = "job_interview_offer_status"
-
-    id = Column(Integer, primary_key=True)
-
-class JobInterviewOffer(Base):
-    __tablename__ = "job_interview_offer"
-
-    id = Column(Integer, primary_key=True)
-    tenant_id = Column(Integer, ForeignKey("accounts_tenant.id"))
-    candidate_id = Column(Integer, ForeignKey("accounts_user.id"))
-    employee_id = Column(Integer, ForeignKey("accounts_user.id"))
-    requisition_id = Column(Integer, ForeignKey("job_requisition.id"))
-    type_id = Column(Integer, ForeignKey("job_interview_offer_type.id"))
-    status_id = Column(Integer, ForeignKey("job_interview_offer_status.id"))
-    created = Column(DateTime, default=tz.utcnow)
-    expires = Column(DateTime)
-
-    tenant = relationship(Tenant, backref="job_interview_offers")
-    candidate = relationship(User, primaryjoin="JobInterviewOffer.candidate_id==User.id", backref="job_interview_offers")
-    employee = relationship(User, primaryjoin="JobInterviewOffer.employee_id==User.id")
-    requisition = relationship(JobRequisition)
-    type = relationship(JobInterviewOfferType)
-    status = relationship(JobInterviewOfferStatus)
-
 class JobApplicationType(Base):
     __tablename__ = "job_application_type"
 
@@ -183,6 +151,19 @@ class JobApplicationScore(Base):
     user = relationship(User)
     application = relationship(JobApplication)
 
+class JobApplicationLog(Base):
+    __tablename__ = "job_application_log"
+
+    id = Column(Integer, primary_key=True)
+    tenant_id = Column(Integer, ForeignKey("accounts_tenant.id"))
+    user_id = Column(Integer, ForeignKey("accounts_user.id"))
+    application_id = Column(Integer, ForeignKey("job_application.id"))
+    note = Column(Text(4096))
+
+    tenant = relationship(Tenant)
+    user = relationship(User)
+    application = relationship(JobApplication, backref="job_application_logs")
+
 class JobApplicationVote(Base):
     __tablename__ = "job_application_vote"
     __table_args__ = (UniqueConstraint('tenant_id', 'user_id', 'application_id'),)
@@ -195,7 +176,39 @@ class JobApplicationVote(Base):
 
     tenant = relationship(Tenant)
     user = relationship(User)
+    application = relationship(JobApplication, backref="job_application_votes")
+
+class JobInterviewOfferType(Base):
+    __tablename__ = "job_interview_offer_type"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(100))
+    description = Column(String(1024))
+
+class JobInterviewOfferStatus(Base):
+    __tablename__ = "job_interview_offer_status"
+
+    id = Column(Integer, primary_key=True)
+
+class JobInterviewOffer(Base):
+    __tablename__ = "job_interview_offer"
+
+    id = Column(Integer, primary_key=True)
+    tenant_id = Column(Integer, ForeignKey("accounts_tenant.id"))
+    candidate_id = Column(Integer, ForeignKey("accounts_user.id"))
+    employee_id = Column(Integer, ForeignKey("accounts_user.id"))
+    application_id = Column(Integer, ForeignKey("job_application.id"))
+    type_id = Column(Integer, ForeignKey("job_interview_offer_type.id"))
+    status_id = Column(Integer, ForeignKey("job_interview_offer_status.id"))
+    created = Column(DateTime, default=tz.utcnow)
+    expires = Column(DateTime)
+
+    tenant = relationship(Tenant, backref="job_interview_offers")
+    candidate = relationship(User, primaryjoin="JobInterviewOffer.candidate_id==User.id", backref="job_interview_offers")
+    employee = relationship(User, primaryjoin="JobInterviewOffer.employee_id==User.id")
     application = relationship(JobApplication)
+    type = relationship(JobInterviewOfferType)
+    status = relationship(JobInterviewOfferStatus)
 
 class JobOfferStatus(Base):
     __tablename__ = "job_offer_status"
@@ -211,7 +224,7 @@ class JobOffer(Base):
     tenant_id = Column(Integer, ForeignKey("accounts_tenant.id"))
     employee_id = Column(Integer, ForeignKey("accounts_user.id"))
     candidate_id = Column(Integer, ForeignKey("accounts_user.id"))
-    requisition_id = Column(Integer, ForeignKey("job_requisition.id"))
+    application_id = Column(Integer, ForeignKey("job_application.id"))
     status_id = Column(Integer, ForeignKey("job_offer_status.id"))
     salary = Column(Integer)
     created = Column(DateTime, default=tz.utcnow)
@@ -219,7 +232,7 @@ class JobOffer(Base):
     tenant = relationship(Tenant, backref="job_offers")
     employee = relationship(User, primaryjoin="JobOffer.employee_id==User.id", backref="job_offers")
     candidate = relationship(User, primaryjoin="JobOffer.candidate_id==User.id")
-    requisition = relationship(JobRequisition)
+    application = relationship(JobApplication)
     status = relationship(JobOfferStatus)
 
 class JobNote(Base):
