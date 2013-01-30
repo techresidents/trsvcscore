@@ -189,6 +189,8 @@ class JobInterviewOfferStatus(Base):
     __tablename__ = "job_interview_offer_status"
 
     id = Column(Integer, primary_key=True)
+    name = Column(String(100))
+    description = Column(String(1024))
 
 class JobInterviewOffer(Base):
     __tablename__ = "job_interview_offer"
