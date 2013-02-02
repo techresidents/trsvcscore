@@ -33,7 +33,7 @@ class JobRequisition(Base):
     description = Column(Text(4096))
     salary_start = Column(Integer)
     salary_end = Column(Integer)
-    created = Column(DateTime)
+    created = Column(DateTime, default=tz.utcnow)
     telecommute = Column(Boolean)
     relocation = Column(Boolean)
     employer_requisition_identifier = Column(String(100))
