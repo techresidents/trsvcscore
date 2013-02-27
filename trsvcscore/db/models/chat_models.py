@@ -1,7 +1,7 @@
 from sqlalchemy import Boolean, Column, Float, Integer, DateTime, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func
 
+from trpycore.timezone import tz
 from trsvcscore.db.models.base import Base
 from trsvcscore.db.models.accounts_models import User
 from trsvcscore.db.models.common_models import MimeType, Tag, Topic, Quality
@@ -153,7 +153,7 @@ class ChatScheduleJob(Base):
 
     id = Column(Integer, primary_key=True)
     chat_id = Column(Integer, ForeignKey("chat.id"), unique=True)
-    start = Column(DateTime, server_default=func.current_timestamp())
+    start = Column(DateTime, default=tz.utcnow)
     end = Column(DateTime, nullable=True)
 
     chat = relationship(Chat)
@@ -163,7 +163,7 @@ class ChatPersistJob(Base):
 
     id = Column(Integer, primary_key=True)
     chat_session_id = Column(Integer, ForeignKey("chat_session.id"))
-    created = Column(DateTime, server_default=func.current_timestamp())
+    created = Column(DateTime, default=tz.utcnow)
     start = Column(DateTime, nullable=True)
     end = Column(DateTime, nullable=True)
     owner = Column(String(1024), nullable=True)
@@ -176,8 +176,8 @@ class ChatArchiveJob(Base):
 
     id = Column(Integer, primary_key=True)
     chat_session_id = Column(Integer, ForeignKey("chat_session.id"))
-    created = Column(DateTime, server_default=func.current_timestamp())
-    not_before = Column(DateTime, server_default=func.current_timestamp())
+    created = Column(DateTime, default=tz.utcnow)
+    not_before = Column(DateTime, default=tz.utcnow)
     start = Column(DateTime, nullable=True)
     end = Column(DateTime, nullable=True)
     owner = Column(String(1024), nullable=True)

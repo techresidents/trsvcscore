@@ -19,10 +19,13 @@ from trsvcscore.db.models.chat_models import \
         ChatHighlightSession
 
 from trsvcscore.db.models.job_models import \
-        JobLocationPreference, JobOrganizationPreference, \
-        JobPositionType, JobPositionTypePreference, \
-        JobPreferences, JobRequisition, JobRequisitionLocation, \
-        JobRequisitionTechnology, JobTechnologyPreference
+        JobApplication, JobApplicationLog, JobApplicationScore, \
+        JobApplicationStatus, JobApplicationType, JobApplicationVote, \
+        JobEvent, JobEventCandidate, JobInterviewOffer, \
+        JobInterviewOfferStatus, JobInterviewOfferType, \
+        JobLocationPref, JobOrganizationPref, JobNote, JobOffer, \
+        JobOfferStatus, JobPositionType, JobPositionTypePref, JobRequisition, \
+        JobRequisitionStatus, JobRequisitionTechnology, JobTechnologyPref
 
 from trsvcscore.db.models.notification_models import \
         Notification, NotificationJob, \
