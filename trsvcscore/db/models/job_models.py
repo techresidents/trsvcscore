@@ -37,6 +37,7 @@ class JobRequisition(Base):
     telecommute = Column(Boolean)
     relocation = Column(Boolean)
     employer_requisition_identifier = Column(String(100), nullable=True)
+    deleted = Column(Boolean, default=False)
 
     tenant = relationship(Tenant, backref="job_requisitions")
     user = relationship(User, backref="job_requisitions")
