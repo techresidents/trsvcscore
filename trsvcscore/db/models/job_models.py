@@ -125,13 +125,16 @@ class JobApplication(Base):
     id = Column(Integer, primary_key=True)
     tenant_id = Column(Integer, ForeignKey("accounts_tenant.id"))
     user_id = Column(Integer, ForeignKey("accounts_user.id"))
+    creator_id = Column(Integer, ForeignKey("accounts_user.id"))
     requisition_id = Column(Integer, ForeignKey("job_requisition.id"))
     type_id = Column(Integer, ForeignKey("job_application_type.id"))
     status_id = Column(Integer, ForeignKey("job_application_status.id"))
     created = Column(DateTime, default=tz.utcnow)
 
     tenant = relationship(Tenant, backref="job_applications")
-    user = relationship(User, backref="job_applications")
+
+    user = relationship(User, backref="job_applications", primaryjoin="JobApplication.user_id==User.id")
+    creator = relationship(User, primaryjoin="JobApplication.creator_id==User.id")
     requisition = relationship(JobRequisition, backref="job_applications")
     type = relationship(JobApplicationType)
     status = relationship(JobApplicationStatus)
