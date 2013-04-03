@@ -250,6 +250,7 @@ class JobNote(Base):
     employee_id = Column(Integer, ForeignKey("accounts_user.id"))
     candidate_id = Column(Integer, ForeignKey("accounts_user.id"))
     note = Column(Text(4096))
+    modified = Column(DateTime, default=tz.utcnow, onupdate=tz.utcnow)
 
     tenant = relationship(Tenant)
     employee = relationship(User, primaryjoin="JobNote.employee_id==User.id")
