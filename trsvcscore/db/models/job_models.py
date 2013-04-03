@@ -163,6 +163,7 @@ class JobApplicationLog(Base):
     user_id = Column(Integer, ForeignKey("accounts_user.id"))
     application_id = Column(Integer, ForeignKey("job_application.id"))
     note = Column(Text(4096))
+    created = Column(DateTime, default=tz.utcnow)
 
     tenant = relationship(Tenant)
     user = relationship(User)
