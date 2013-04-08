@@ -65,6 +65,15 @@ class Session(object):
         return
 
     @abc.abstractmethod
+    def tenant_id(self):
+        """Get tenant id associated with session.
+
+        Returns:
+            Tenant id if session is authenticated, None otherwise.
+        """
+        return
+
+    @abc.abstractmethod
     def expires(self):
         """Get session expiration time.
 
