@@ -253,8 +253,8 @@ class JobNote(Base):
     modified = Column(DateTime, default=tz.utcnow, onupdate=tz.utcnow)
 
     tenant = relationship(Tenant)
-    employee = relationship(User, primaryjoin="JobNote.employee_id==User.id")
-    candidate = relationship(User, primaryjoin="JobNote.candidate_id==User.id")
+    employee = relationship(User, primaryjoin="JobNote.employee_id==User.id", backref="job_notes")
+    candidate = relationship(User, primaryjoin="JobNote.candidate_id==User.id", backref="candidate_job_notes")
 
 class JobEvent(Base):
     __tablename__ = "job_event"
