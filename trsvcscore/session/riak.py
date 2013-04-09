@@ -58,6 +58,15 @@ class RiakSession(Session):
         """
         data = self._session.get_data()
         return data.get("user_id", None)
+
+    def tenant_id(self):
+        """Get tenant id associated with session.
+
+        Returns:
+            Tenant id if session is authenticated, None otherwise.
+        """
+        data = self._session.get_data()
+        return data.get("tenant_id", None)
     
     def expires(self):
         """Get session expiration time.

@@ -37,6 +37,7 @@ class JobRequisition(Base):
     telecommute = Column(Boolean)
     relocation = Column(Boolean)
     employer_requisition_identifier = Column(String(100), nullable=True)
+    deleted = Column(Boolean, default=False)
 
     tenant = relationship(Tenant, backref="job_requisitions")
     user = relationship(User, backref="job_requisitions")
@@ -124,13 +125,16 @@ class JobApplication(Base):
     id = Column(Integer, primary_key=True)
     tenant_id = Column(Integer, ForeignKey("accounts_tenant.id"))
     user_id = Column(Integer, ForeignKey("accounts_user.id"))
+    creator_id = Column(Integer, ForeignKey("accounts_user.id"))
     requisition_id = Column(Integer, ForeignKey("job_requisition.id"))
     type_id = Column(Integer, ForeignKey("job_application_type.id"))
     status_id = Column(Integer, ForeignKey("job_application_status.id"))
     created = Column(DateTime, default=tz.utcnow)
 
     tenant = relationship(Tenant, backref="job_applications")
-    user = relationship(User, backref="job_applications")
+
+    user = relationship(User, backref="job_applications", primaryjoin="JobApplication.user_id==User.id")
+    creator = relationship(User, primaryjoin="JobApplication.creator_id==User.id")
     requisition = relationship(JobRequisition, backref="job_applications")
     type = relationship(JobApplicationType)
     status = relationship(JobApplicationStatus)
@@ -159,6 +163,7 @@ class JobApplicationLog(Base):
     user_id = Column(Integer, ForeignKey("accounts_user.id"))
     application_id = Column(Integer, ForeignKey("job_application.id"))
     note = Column(Text(4096))
+    created = Column(DateTime, default=tz.utcnow)
 
     tenant = relationship(Tenant)
     user = relationship(User)
@@ -245,10 +250,11 @@ class JobNote(Base):
     employee_id = Column(Integer, ForeignKey("accounts_user.id"))
     candidate_id = Column(Integer, ForeignKey("accounts_user.id"))
     note = Column(Text(4096))
+    modified = Column(DateTime, default=tz.utcnow, onupdate=tz.utcnow)
 
     tenant = relationship(Tenant)
-    employee = relationship(User, primaryjoin="JobNote.employee_id==User.id")
-    candidate = relationship(User, primaryjoin="JobNote.candidate_id==User.id")
+    employee = relationship(User, primaryjoin="JobNote.employee_id==User.id", backref="job_notes")
+    candidate = relationship(User, primaryjoin="JobNote.candidate_id==User.id", backref="candidate_job_notes")
 
 class JobEvent(Base):
     __tablename__ = "job_event"
