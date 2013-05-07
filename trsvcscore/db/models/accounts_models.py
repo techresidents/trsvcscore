@@ -1,5 +1,5 @@
 from sqlalchemy import Boolean, Column, Integer, Date, DateTime, ForeignKey, String
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import backref, relationship
 from sqlalchemy.sql import func
 
 from trsvcscore.db.models.base import Base
@@ -69,7 +69,7 @@ class DeveloperProfile(Base):
     email_new_chat_topics = Column(Boolean, default=False)
     email_new_job_opps = Column(Boolean, default=True)
 
-    user = relationship(User)
+    user = relationship(User, backref=backref("developer_profile", uselist=False))
 
 class EmployerProfile(Base):
     __tablename__ = "accounts_employer_profile"

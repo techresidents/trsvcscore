@@ -196,6 +196,6 @@ class Skill(Base):
     expertise_type_id = Column(Integer, ForeignKey("expertise_type.id"))
     yrs_experience = Column(Integer)
 
-    user = relationship(User)
+    user = relationship(User, backref="skills")
     technology = relationship(Technology)
     expertise_type = relationship(ExpertiseType)
