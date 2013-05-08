@@ -30,3 +30,6 @@ from trsvcscore.db.models.job_models import \
 from trsvcscore.db.models.notification_models import \
         Notification, NotificationJob, \
         NotificationUser
+
+from trsvcscore.db.models.index_models import \
+        IndexJob

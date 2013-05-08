@@ -77,6 +77,8 @@ class Technology(Base):
     name = Column(String(100), unique=True)
     description = Column(String(1024))
 
+    type = relationship(TechnologyType)
+
 class Quality(Base):
     __tablename__ = "quality"
 
@@ -196,6 +198,6 @@ class Skill(Base):
     expertise_type_id = Column(Integer, ForeignKey("expertise_type.id"))
     yrs_experience = Column(Integer)
 
-    user = relationship(User)
+    user = relationship(User, backref="skills")
     technology = relationship(Technology)
     expertise_type = relationship(ExpertiseType)

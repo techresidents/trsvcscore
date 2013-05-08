@@ -66,7 +66,7 @@ class JobLocationPref(Base):
     user_id = Column(Integer, ForeignKey("accounts_user.id"))
     location_id = Column(Integer, ForeignKey("location.id"))
 
-    user = relationship(User)
+    user = relationship(User, backref="job_location_prefs")
     location = relationship(Location)
 
 class JobOrganizationPref(Base):
@@ -88,7 +88,7 @@ class JobTechnologyPref(Base):
     user_id = Column(Integer, ForeignKey("accounts_user.id"))
     technology_id = Column(Integer, ForeignKey("technology.id"))
 
-    user = relationship(User)
+    user = relationship(User, backref="job_technology_prefs")
     technology = relationship(Technology)
 
 class JobPositionTypePref(Base):
@@ -101,7 +101,7 @@ class JobPositionTypePref(Base):
     salary_start = Column(Integer, nullable=True)
     salary_end = Column(Integer, nullable=True)
 
-    user = relationship(User)
+    user = relationship(User, backref="job_position_type_prefs")
     position_type = relationship(JobPositionType)
 
 class JobApplicationType(Base):
