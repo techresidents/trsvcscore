@@ -77,6 +77,8 @@ class Technology(Base):
     name = Column(String(100), unique=True)
     description = Column(String(1024))
 
+    type = relationship(TechnologyType)
+
 class Quality(Base):
     __tablename__ = "quality"
 
