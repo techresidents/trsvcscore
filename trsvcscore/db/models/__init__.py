@@ -3,20 +3,13 @@ from trsvcscore.db.models.accounts_models import \
         DeveloperProfile, EmployerProfile, Tenant, User
 
 from trsvcscore.db.models.common_models import \
-        Codeboard, CodeboardResource, Concept, Document, DocumentResource, \
-        ExpertiseType, Location, MimeType, Organization, \
-        Quality, Resource, ResourceType, Skill, Tag, Technology, \
-        TechnologyType, Topic, TopicResource, TopicType, \
-        Whiteboard, WhiteboardResource
-
+        Concept, Document, ExpertiseType, Location, MimeType, \
+        Organization, Quality, Skill, Tag, Technology, \
+        TechnologyType, Topic, TopicType \
 
 from trsvcscore.db.models.chat_models import \
-        Chat, ChatType, ChatSession, ChatUser, ChatFeedback, \
-        ChatMinute, ChatRegistration, ChatScheduleJob, \
-	    ChatPersistJob, ChatMessage, ChatMessageType, \
-        ChatMessageFormatType, ChatTag, ChatSpeakingMarker, \
-        ChatArchive, ChatArchiveType, ChatArchiveUser, ChatArchiveJob, \
-        ChatHighlightSession
+        Chat, ChatParticipant, ChatPersistJob, \
+        ChatArchive, ChatArchiveJob, ChatReel
 
 from trsvcscore.db.models.job_models import \
         JobApplication, JobApplicationLog, JobApplicationScore, \

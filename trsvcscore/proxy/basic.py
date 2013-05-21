@@ -1,4 +1,5 @@
-import logging
+import thrift
+from thrift.transport.TTransport import TTransportException
 
 from trpycore.pool.queue import QueuePool
 from trsvcscore.proxy.base import ServiceProxyException, ServiceProxy
@@ -109,9 +110,9 @@ class BasicServiceProxy(ServiceProxy):
                     if not self.service_transport.isOpen():
                         self.service_transport.open()
                     return method(*args, **kwargs)
-                except Exception as error:
-                    logging.exception(error)
-                    raise ServiceProxyException("service unavailable")
+                except TTransportException as error:
+                    self.service_transport.close()
+                    raise ServiceProxyException("service unavailable: %s" % str(error))
                 finally:
                     if not self.keepalive and self.service_transport.isOpen():
                         self.service_transport.close()
