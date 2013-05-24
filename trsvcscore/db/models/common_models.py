@@ -128,3 +128,15 @@ class Skill(Base):
     user = relationship(User, backref="skills")
     technology = relationship(Technology)
     expertise_type = relationship(ExpertiseType)
+
+class TalkingPoint(Base):
+    __tablename__ = "talking_point"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("accounts_user.id"))
+    topic_id = Column(Integer, ForeignKey("topic.id"))
+    rank = Column(Integer)
+    point = Column(String(4096))
+
+    user = relationship(User)
+    topic = relationship(Topic, backref="talking_points")
