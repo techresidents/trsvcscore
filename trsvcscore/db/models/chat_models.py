@@ -14,6 +14,7 @@ class Chat(Base):
     token = Column(String(1024), nullable=True, unique=True)
     start = Column(DateTime, nullable=True)
     end = Column(DateTime, nullable=True)
+    max_duration = Column(Integer)
     max_participants = Column(Integer, default=1)
     no_participants = Column(Integer, default=0)
     record = Column(Boolean, default=False)
