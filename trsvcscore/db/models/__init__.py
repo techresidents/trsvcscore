@@ -8,7 +8,7 @@ from trsvcscore.db.models.common_models import \
         TechnologyType, Topic, TopicType, TalkingPoint
 
 from trsvcscore.db.models.chat_models import \
-        Chat, ChatParticipant, ChatPersistJob, \
+        Chat, ChatParticipant, \
         ChatArchive, ChatArchiveJob, ChatReel
 
 from trsvcscore.db.models.job_models import \

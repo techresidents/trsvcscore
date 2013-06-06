@@ -51,19 +51,6 @@ class ChatArchive(Base):
     chat = relationship(Chat, backref="chat_archives")
     mime_type = relationship(MimeType)
 
-class ChatPersistJob(Base):
-    __tablename__ = "chat_persist_job"
-
-    id = Column(Integer, primary_key=True)
-    chat_id = Column(Integer, ForeignKey("chat.id"))
-    created = Column(DateTime, default=tz.utcnow)
-    start = Column(DateTime, nullable=True)
-    end = Column(DateTime, nullable=True)
-    owner = Column(String(1024), nullable=True)
-    successful = Column(Boolean, nullable=True)
-
-    chat = relationship(Chat)
-
 class ChatArchiveJob(Base):
     __tablename__ = "chat_archive_job"
 
@@ -71,6 +58,7 @@ class ChatArchiveJob(Base):
     chat_id = Column(Integer, ForeignKey("chat.id"))
     created = Column(DateTime, default=tz.utcnow)
     not_before = Column(DateTime, default=tz.utcnow)
+    data = Column(Text(4096))
     start = Column(DateTime, nullable=True)
     end = Column(DateTime, nullable=True)
     owner = Column(String(1024), nullable=True)
