@@ -35,10 +35,18 @@ class ChatParticipant(Base):
     chat = relationship(Chat, backref="chat_participants")
     user = relationship(User)
 
+class ChatArchiveType(Base):
+    __tablename__ = "chat_archive_type"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(100), unique=True)
+    description = Column(String(1024))
+
 class ChatArchive(Base):
     __tablename__ = "chat_archive"
 
     id = Column(Integer, primary_key=True)
+    type_id = Column(Integer, ForeignKey("chat_archive_type.id"))
     chat_id = Column(Integer, ForeignKey("chat.id"))
     mime_type_id = Column(Integer, ForeignKey("mime_type.id"))
     path = Column(String(1024))
@@ -48,6 +56,7 @@ class ChatArchive(Base):
     length = Column(Integer, nullable=True)
     offset = Column(Integer, nullable=True)
 
+    type = relationship(ChatArchiveType)
     chat = relationship(Chat, backref="chat_archives")
     mime_type = relationship(MimeType)
 

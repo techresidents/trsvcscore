@@ -9,7 +9,7 @@ from trsvcscore.db.models.common_models import \
 
 from trsvcscore.db.models.chat_models import \
         Chat, ChatParticipant, \
-        ChatArchive, ChatArchiveJob, ChatReel
+        ChatArchive, ChatArchiveType, ChatArchiveJob, ChatReel
 
 from trsvcscore.db.models.job_models import \
         JobApplication, JobApplicationLog, JobApplicationScore, \
