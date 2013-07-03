@@ -33,6 +33,7 @@ class Location(Base):
     __tablename__ = "location"
 
     id = Column(Integer, primary_key=True)
+    region = Column(String(100))
     country = Column(String(100))
     state = Column(String(100))
     city = Column(String(100))

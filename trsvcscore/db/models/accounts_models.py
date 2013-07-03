@@ -21,6 +21,7 @@ class User(Base):
     last_name = Column(String(30))
     email = Column(String(254))
     password = Column(String(128))
+    timezone = Column(String(255))
     is_staff = Column(Boolean)
     is_active = Column(Boolean)
     last_login = Column(DateTime)
@@ -64,6 +65,7 @@ class DeveloperProfile(Base):
 
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("accounts_user.id"))
+    location = Column(String(100), nullable=True)
     developer_since = Column(Date, nullable=True)
     email_upcoming_chats = Column(Boolean, default=False)
     email_new_chat_topics = Column(Boolean, default=False)
