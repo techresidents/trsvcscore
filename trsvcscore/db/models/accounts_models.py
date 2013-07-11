@@ -70,6 +70,7 @@ class DeveloperProfile(Base):
     email_upcoming_chats = Column(Boolean, default=False)
     email_new_chat_topics = Column(Boolean, default=False)
     email_new_job_opps = Column(Boolean, default=True)
+    actively_seeking = Column(Boolean, default=False)
 
     user = relationship(User, backref=backref("developer_profile", uselist=False))
 
