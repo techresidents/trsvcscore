@@ -1,27 +1,23 @@
 import logging 
+import time
 
 class EnumMeta(type):
     def __new__(cls, name, bases, attributes):
 
         #create new class
-        module = attributes.pop("__module__")
-        new_class = super(EnumMeta, cls).__new__(
-                cls,
-                name,
-                bases,
-                {"__module__": module})
+        new_class = super(EnumMeta, cls).__new__(cls, name, bases, {})
 
-        new_class.loaded = False
+        new_class.load_timestamp = 0
         new_class.KEYS_TO_VALUES = {}
         new_class.VALUES_TO_KEYS = {}
         
-        if "base" not in attributes:
+        if not attributes.get("base", False):
             required = [
                 "model_class",
                 "key_column",
                 "value_column",
                 "db_session_factory"
-                ]
+            ]
             
             for attribute in required:
                 if attribute not in attributes:
@@ -39,15 +35,18 @@ class EnumMeta(type):
 
         return new_class
 
-    def __getattribute__(cls, attribute):
-        if attribute in ["KEYS_TO_VALUES", "VALUES_TO_KEYS"]: 
+    def __getattr__(cls, attribute):
+        if cls.should_load(attribute):
             try:
-                if not cls.loaded:
-                    cls.load()
+                cls.load()
             except Exception as error:
                 logging.exception(error)
 
-        return super(EnumMeta, cls).__getattribute__(attribute)
+        if attribute not in cls.KEYS_TO_VALUES:
+            msg = "no such attribute '%s'" % attribute
+            raise AttributeError(msg)
+
+        return cls.KEYS_TO_VALUES[attribute]
 
     def add_to_class(cls, name, value):
         if hasattr(value, "contribute_to_class"):
@@ -55,8 +54,21 @@ class EnumMeta(type):
         else:
             setattr(cls, name, value)
     
+    def should_load(cls, attribute):
+        result = False
+        elapsed = time.time() - cls.load_timestamp
+        if attribute in cls.KEYS_TO_VALUES:
+            result = elapsed > cls.expire and \
+                     elapsed > cls.throttle
+        else:
+            result = elapsed > cls.throttle
+
+        return result
+
     def load(cls):
         try:
+            cls.load_timestamp = time.time()
+
             session = None
             keys_to_values = {} 
             values_to_keys = {}
@@ -69,13 +81,8 @@ class EnumMeta(type):
                 keys_to_values[key] = value
                 values_to_keys[value] = key
             
-            cls.loaded = True
             cls.KEYS_TO_VALUES = keys_to_values
             cls.VALUES_TO_KEYS = values_to_keys
-
-            #add class attributes
-            for attribute, value in keys_to_values.items():
-                setattr(cls, str(attribute).upper(), value)
 
             session.commit()
 
@@ -91,5 +98,7 @@ class EnumMeta(type):
 class Enum(object):
     __metaclass__ = EnumMeta
     base = True
+    expire = 3600
+    throttle = 60
     def __init__(*args, **kwargs):
         raise RuntimeError("Enum should not be instantiated")
