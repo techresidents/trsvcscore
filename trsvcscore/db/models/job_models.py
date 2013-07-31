@@ -4,7 +4,7 @@ from sqlalchemy.orm import relationship
 from trpycore.timezone import tz
 from trsvcscore.db.models.base import Base
 from trsvcscore.db.models.accounts_models import Tenant, User
-from trsvcscore.db.models.common_models import Location, Organization, Technology
+from trsvcscore.db.models.common_models import ExpertiseType, Location, Organization, Technology
 
 class JobPositionType(Base):
     __tablename__ = "job_position_type"
@@ -31,11 +31,11 @@ class JobRequisition(Base):
     status_id = Column(Integer, ForeignKey("job_requisition_status.id"))
     title = Column(String(100))
     description = Column(Text(4096))
-    salary_start = Column(Integer)
-    salary_end = Column(Integer)
+    salary = Column(String(100))
     created = Column(DateTime, default=tz.utcnow)
     telecommute = Column(Boolean)
     relocation = Column(Boolean)
+    equity = Column(String(100), nullable=True)
     employer_requisition_identifier = Column(String(100), nullable=True)
     deleted = Column(Boolean, default=False)
 
@@ -53,10 +53,12 @@ class JobRequisitionTechnology(Base):
     id = Column(Integer, primary_key=True)
     requisition_id = Column(Integer, ForeignKey("job_requisition.id"))
     technology_id = Column(Integer, ForeignKey("technology.id"))
+    expertise_type_id = Column(Integer, ForeignKey("expertise_type.id"))
     yrs_experience = Column(Integer)
 
     requisition = relationship(JobRequisition, backref="requisition_technologies")
     technology = relationship(Technology)
+    expertise_type = relationship(ExpertiseType)
 
 class JobLocationPref(Base):
     __tablename__ = "job_location_pref"

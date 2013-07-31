@@ -49,5 +49,34 @@ class TestDatabaseEnum(unittest.TestCase):
         self.assertEqual(TopicTypeEnum.VALUES_TO_KEYS[1], "DEVELOPER")
         self.assertEqual(TopicTypeEnum.VALUES_TO_KEYS[2], "EMPLOYER")
 
+    def test_spaces_db_enum(self):
+        class PositionTypeEnum(Enum):
+            model_class = models.JobPositionType
+            key_column = "name"
+            value_column = "id"
+            db_session_factory = self.db_session_factory
+
+        self.assertEqual(PositionTypeEnum.Junior_Developer, 1)
+        self.assertEqual(PositionTypeEnum.Senior_Developer, 2)
+        self.assertEqual(PositionTypeEnum.KEYS_TO_VALUES["Junior Developer"], 1)
+        self.assertEqual(PositionTypeEnum.KEYS_TO_VALUES["Senior Developer"], 2)
+        self.assertEqual(PositionTypeEnum.VALUES_TO_KEYS[1], "Junior Developer")
+        self.assertEqual(PositionTypeEnum.VALUES_TO_KEYS[2], "Senior Developer")
+
+    def test_spaces_upper_db_enum(self):
+        class PositionTypeEnum(Enum):
+            model_class = models.JobPositionType
+            key_column = "name"
+            value_column = "id"
+            uppercase_properties = True
+            db_session_factory = self.db_session_factory
+
+        self.assertEqual(PositionTypeEnum.JUNIOR_DEVELOPER, 1)
+        self.assertEqual(PositionTypeEnum.SENIOR_DEVELOPER, 2)
+        self.assertEqual(PositionTypeEnum.KEYS_TO_VALUES["Junior Developer"], 1)
+        self.assertEqual(PositionTypeEnum.KEYS_TO_VALUES["Senior Developer"], 2)
+        self.assertEqual(PositionTypeEnum.VALUES_TO_KEYS[1], "Junior Developer")
+        self.assertEqual(PositionTypeEnum.VALUES_TO_KEYS[2], "Senior Developer")
+
 if __name__ == "__main__":
     unittest.main()
