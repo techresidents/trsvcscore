@@ -8,6 +8,14 @@ class EnumDict(dict):
         self.dict_attribute = dict_attribute
         super(EnumDict, self).__init__(*args, **kwargs)
     
+    def __contains__(self, key):
+        if self.enum_class.expired():
+            try:
+                self.enum_class.load()
+            except Exception as error:
+                logging.exception(error)
+        return super(EnumDict, self).__contains__(key)
+
     def __missing__(self, key):
         if self.enum_class.can_load():
             try:
