@@ -20,7 +20,7 @@ class Chat(Base):
     record = Column(Boolean, default=False)
 
     topic = relationship(Topic, backref="chats")
-    users = relationship(User, secondary=lambda: ChatParticipant.__table__)
+    users = relationship(User, backref="chats", secondary=lambda: ChatParticipant.__table__)
 
 class ChatParticipant(Base):
     __tablename__ = "chat_participant"
