@@ -6,7 +6,7 @@ import mimetypes
 import os
 import Queue
 
-from cloudfiles.errors import NoSuchObject, NoSuchContainer
+from trrackspace.services.cloudfiles.errors import NoSuchObject, NoSuchContainer
 
 from trpycore.pool.queue import QueuePool
 from trsvcscore.storage.base import Storage, StorageFile, StorageFileMode
@@ -163,6 +163,21 @@ class CloudfilesStorageFile(StorageFile):
             raise exception.FileOperationFailed(str(error))
         return result
 
+    def chunks(self, chunk_size=None):
+        """Read file data in chunks of chunk_size.
+
+        Args:
+            chunk_size: optional chunk size. If None,
+                a reasonable chunk size will be chosen.
+        Yields:
+            chunk of data as a string
+        """
+        chunk_size = chunk_size or 8192
+
+        self.seek(0)
+        for chunk in self.object.chunks(chunk_size):
+            yield chunk
+
     def write(self, data):
         """Write data to file.
 
@@ -250,14 +265,14 @@ class CloudfilesStorage(Storage):
     """
 
     def __init__(self,
-            connection,
+            client,
             container_name,
             location_base=None,
             create_container=False):
         """CloudfilesStorage constructor.
 
         Args:
-            connection: cloudfiles.Connection object
+            client: CloudfilesClient object
             container_name: cloud files container name
             location_base: optional location within the container
                 where files should be stored. Note that the
@@ -268,7 +283,7 @@ class CloudfilesStorage(Storage):
                 container should be created if it does not already
                 exist.
         """
-        self.connection = connection
+        self.client = client
         self.container_name = container_name
         self.container = None
         self.location_base = location_base
@@ -283,10 +298,10 @@ class CloudfilesStorage(Storage):
         
         #get/create container
         try:
-            self.container = self.connection.get_container(container_name)
+            self.container = self.client.get_container(container_name)
         except NoSuchContainer:
             if self.create_container:
-                self.container = self.connection.create_container(container_name)
+                self.container = self.client.create_container(container_name)
             else:
                 raise
     
@@ -327,7 +342,7 @@ class CloudfilesStorage(Storage):
             path = ""
         path_length = len(path)
 
-        objects = self.container.list_objects(prefix=path, delimiter="/")
+        objects = self.container.list(prefix=path, delimiter="/")
 
         for entry in objects:
             if entry.endswith("/"):
@@ -464,14 +479,14 @@ class CloudfilesStorage(Storage):
             raise exception.InvalidArgument("ssl and streaming are mutually exclusive")
 
         result = None
-        if self.container.is_public():
+        if self.container.cdn_enabled:
             location = self._name_to_location(name)
             if ssl:
-                result = "%s/%s" % (self.container.public_ssl_uri(), location)
+                result = "%s/%s" % (self.container.cdn_ssl_uri, location)
             elif streaming:
-                result = "%s/%s" % (self.container.public_streaming_uri(), location)
+                result = "%s/%s" % (self.container.cdn_streaming_uri, location)
             else:
-                result = "%s/%s" % (self.container.public_uri(), location)
+                result = "%s/%s" % (self.container.cdn_uri, location)
 
         return result
 
@@ -502,17 +517,17 @@ class CloudfilesStoragePool(QueuePool):
     """
     
     def __init__(self,
-            cloudfiles_connection_factory,
+            cloudfiles_client_factory,
             container_name,
             size,
             location_base=None,
             queue_class=Queue.Queue):
 
-        """RiakSessionStorePool constructor.
+        """CloudfilesStoragePool constructor.
 
         Args:
-            cloudfiles_connection_factory: Factory object to create
-                cloudfiles.Connection objects.
+            cloudfiles_client_factory: Factory object to create
+                CloudfilesClient objects.
             container_name: cloud files container name
             size: Number of RiakSessionStore objects to include in pool.
             location_base: optional location within the container
@@ -525,7 +540,7 @@ class CloudfilesStoragePool(QueuePool):
                 have a no-arg constructor and provide a get(block, timeout)
                 method.
         """
-        self.cloudfiles_connection_factory = cloudfiles_connection_factory
+        self.cloudfiles_client_factory = cloudfiles_client_factory
         self.container_name = container_name
         self.size = size
         self.location_base = location_base
@@ -537,8 +552,8 @@ class CloudfilesStoragePool(QueuePool):
     
     def create(self):
         """CloudfilesStorage factory method."""
-        connection = self.cloudfiles_connection_factory.create()
+        client = self.cloudfiles_client_factory.create()
         return CloudfilesStorage(
-                connection=connection,
+                client=client,
                 container_name=self.container_name,
                 location_base=self.location_base)
