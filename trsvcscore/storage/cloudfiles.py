@@ -201,7 +201,7 @@ class CloudfilesStorageFile(StorageFile):
             if isinstance(data, basestring):
                 self.object.write(data)
             elif hasattr(data, "read"):
-                self.object.send(data)
+                self.object.write(data)
             else:
                 raise RuntimeError("Invalid data argument")
             self.offset = self.object.size
