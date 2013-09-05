@@ -3,7 +3,8 @@ import logging
 import time
 import unittest
 
-import cloudfiles
+from trrackspace.services.cloudfiles.client import CloudfilesClient
+from trrackspace.services.cloudfiles.factory import CloudfilesClientFactory
 
 import testbase
 from trpycore.cloudfiles_common.factory import CloudfilesConnectionFactory
@@ -17,26 +18,26 @@ class TestCloudfilesStorage(unittest.TestCase):
     def setUpClass(cls):
         logging.basicConfig(level=logging.DEBUG)
 
-        cls.connection_factory = CloudfilesConnectionFactory(
+        cls.client_factory = CloudfilesClientFactory(
                 username="trdev",
                 api_key=None,
                 password="B88mMJqh",
                 servicenet=False)
 
-        cls.connection = cls.connection_factory.create()
+        cls.client = cls.client_factory.create()
         
         cls.container_name = "unittest_container"
-        cls.container = cls.connection.create_container(
-                container_name=cls.container_name)
-        cls.container.make_private()
+        cls.container = cls.client.create_container(cls.container_name)
+        cls.container.disable_cdn()
 
         cls.storage = CloudfilesStorage(
-                connection=cls.connection,
+                client=cls.client,
                 container_name=cls.container_name)
 
     @classmethod
     def tearDownClass(cls):
-        cls.connection.delete_container(cls.container_name)
+        cls.container.delete_all_objects()
+        cls.container.delete()
     
     def test_listdir(self):
         directories, files = self.storage.listdir()
@@ -124,27 +125,27 @@ class TestCloudfilesStorageWithLocationBase(unittest.TestCase):
     def setUpClass(cls):
         logging.basicConfig(level=logging.DEBUG)
 
-        cls.connection_factory = CloudfilesConnectionFactory(
+        cls.client_factory = CloudfilesClientFactory(
                 username="trdev",
                 api_key=None,
                 password="B88mMJqh",
                 servicenet=False)
 
-        cls.connection = cls.connection_factory.create()
+        cls.client = cls.client_factory.create()
         
         cls.container_name = "unittest_container"
-        cls.container = cls.connection.create_container(
-                container_name=cls.container_name)
-        cls.container.make_private()
+        cls.container = cls.client.create_container(cls.container_name)
+        cls.container.disable_cdn()
 
         cls.storage = CloudfilesStorage(
-                connection=cls.connection,
+                client=cls.client,
                 container_name=cls.container_name,
                 location_base="unittest_location")
 
     @classmethod
     def tearDownClass(cls):
-        cls.connection.delete_container(cls.container_name)
+        cls.container.delete_all_objects()
+        cls.container.delete()
     
     def test_listdir(self):
         directories, files = self.storage.listdir()
@@ -209,23 +210,23 @@ class TestCloudfilesStorageCdn(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         logging.basicConfig(level=logging.DEBUG)
-        cls.connection = cloudfiles.Connection(
+        cls.client = CloudfilesClient(
                 username="techresidents",
                 api_key="6e472c9131df23960b230bfd0b936ade",
                 servicenet=False)
         
         cls.container_name = "unittest_container"
-        cls.container = cls.connection.create_container(
-                container_name=cls.container_name)
-        cls.container.make_public()
+        cls.container = cls.client.create_container(cls.container_name)
+        cls.container.enable_cdn()
 
         cls.storage = CloudfilesStorage(
-                connection=cls.connection,
+                client=cls.client,
                 container_name=cls.container_name)
 
     @classmethod
     def tearDownClass(cls):
-        cls.connection.delete_container(cls.container_name)
+        cls.container.delete_all_objects()
+        cls.container.delete()
     
     def test_url(self):
         #save object
@@ -253,26 +254,26 @@ class TestCloudfilesStorageFile(unittest.TestCase):
     def setUpClass(cls):
         logging.basicConfig(level=logging.DEBUG)
 
-        cls.connection_factory = CloudfilesConnectionFactory(
+        cls.client_factory = CloudfilesClientFactory(
                 username="trdev",
                 api_key=None,
                 password="B88mMJqh",
                 servicenet=False)
 
-        cls.connection = cls.connection_factory.create()
+        cls.client = cls.client_factory.create()
         
         cls.container_name = "unittest_container"
-        cls.container = cls.connection.create_container(
-                container_name=cls.container_name)
-        cls.container.make_public()
+        cls.container = cls.client.create_container(cls.container_name)
+        cls.container.enable_cdn()
 
         cls.storage = CloudfilesStorage(
-                connection=cls.connection,
+                client=cls.client,
                 container_name=cls.container_name)
 
     @classmethod
     def tearDownClass(cls):
-        cls.connection.delete_container(cls.container_name)
+        cls.container.delete_all_objects()
+        cls.container.delete()
 
     def test_basic(self):
         name = "test.txt"

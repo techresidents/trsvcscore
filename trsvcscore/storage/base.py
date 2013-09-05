@@ -162,7 +162,7 @@ class StorageFile(object):
         Yields:
             chunk of data as a string
         """
-        chunk_size = chunk_size or 4096
+        chunk_size = chunk_size or 8192
 
         self.seek(0)
         while True:

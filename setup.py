@@ -16,7 +16,7 @@ def find_packages():
 
 setup(
     name='trsvcscore',
-    version = '0.28.0',
+    version = '0.29.0',
     author = 'Tech Residents, Inc.',
     packages = find_packages(),
     license = open('LICENSE').read(),
@@ -34,4 +34,9 @@ setup(
         'Topic :: System :: Distributed Computing',
         'Topic :: Utilities',
         ],
+    install_requires=[
+        'trpycore>=0.11.0',
+        'trhttp>=0.2.0',
+        'trrackspace>=0.1.0',
+    ]
 )
