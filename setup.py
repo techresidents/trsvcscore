@@ -6,7 +6,7 @@ ez_setup.use_setuptools()
 
 setup(
     name='trsvcscore',
-    version = '0.32-SNAPSHOT',
+    version = '0.32.0',
     author = 'Tech Residents, Inc.',
     packages = find_packages(),
     license = open('LICENSE').read(),
