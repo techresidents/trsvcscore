@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, Integer, ForeignKey, String
+from sqlalchemy import Boolean, Column, Integer, ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import relationship, backref
 
 from trsvcscore.db.models.base import Base
@@ -106,6 +106,18 @@ class Topic(Base):
     children = relationship("Topic", backref=backref("parent", remote_side=[id]))
     type = relationship(TopicType)
     user = relationship(User)
+
+class TopicTag(Base):
+    __tablename__ = "topic_tag"
+    __table_args__ = (UniqueConstraint('topic_id', 'tag_id'),
+        )
+
+    id = Column(Integer, primary_key=True)
+    topic_id = Column(Integer, ForeignKey("topic.id"))
+    tag_id = Column(Integer, ForeignKey("tag.id"))
+
+    topic = relationship(Topic, backref="topic_tags")
+    tag = relationship(Tag)
 
 class Document(Base):
     __tablename__ = "document"
