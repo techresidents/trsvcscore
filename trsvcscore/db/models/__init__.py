@@ -5,7 +5,7 @@ from trsvcscore.db.models.accounts_models import \
 from trsvcscore.db.models.common_models import \
         Concept, Document, ExpertiseType, Location, MimeType, \
         Organization, Quality, Skill, Tag, Technology, \
-        TechnologyType, Topic, TopicType, TalkingPoint
+        TechnologyType, Topic, TopicType, TopicTag, TalkingPoint
 
 from trsvcscore.db.models.chat_models import \
         Chat, ChatParticipant, \
