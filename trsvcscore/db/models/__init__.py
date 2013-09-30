@@ -7,6 +7,9 @@ from trsvcscore.db.models.common_models import \
         Organization, Quality, Skill, Tag, Technology, \
         TechnologyType, Topic, TopicType, TopicTag, TalkingPoint
 
+from trsvcscore.db.models.company_models import CompanySize, \
+        CompanyProfile
+
 from trsvcscore.db.models.chat_models import \
         Chat, ChatParticipant, \
         ChatArchive, ChatArchiveType, ChatArchiveJob, ChatReel
