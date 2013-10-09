@@ -6,7 +6,7 @@ ez_setup.use_setuptools()
 
 setup(
     name='trsvcscore',
-    version = '0.34.0',
+    version = '0.35.0',
     author = 'Tech Residents, Inc.',
     packages = find_packages(),
     license = open('LICENSE').read(),
@@ -26,12 +26,12 @@ setup(
         ],
     install_requires=[
         'trpycore>=0.12.0',
-        'trhttp>=0.6.0',
-        'trrackspace>=0.4.0'
+        'trhttp>=0.7.0',
+        'trrackspace>=0.5.0'
     ],
     dependency_links=[
         'git+ssh://dev.techresidents.com/tr/repos/techresidents/lib/python/trpycore.git@0.12.0#egg=trpycore-0.12.0',
-        'git+ssh://dev.techresidents.com/tr/repos/techresidents/lib/python/trhttp.git@0.6.0#egg=trhttp-0.6.0',
-        'git+ssh://dev.techresidents.com/tr/repos/techresidents/lib/python/trrackspace.git@0.4.0#egg=trrackspace-0.4.0'
+        'git+ssh://dev.techresidents.com/tr/repos/techresidents/lib/python/trhttp.git@0.7.0#egg=trhttp-0.7.0',
+        'git+ssh://dev.techresidents.com/tr/repos/techresidents/lib/python/trrackspace.git@0.5.0#egg=trrackspace-0.5.0'
     ],
 )

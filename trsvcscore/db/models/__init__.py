@@ -12,7 +12,8 @@ from trsvcscore.db.models.company_models import CompanySize, \
 
 from trsvcscore.db.models.chat_models import \
         Chat, ChatParticipant, \
-        ChatArchive, ChatArchiveType, ChatArchiveJob, ChatReel
+        ChatArchive, ChatArchiveType, ChatArchiveJob, ChatReel, \
+        SpotlightChat
 
 from trsvcscore.db.models.job_models import \
         JobApplication, JobApplicationLog, JobApplicationScore, \

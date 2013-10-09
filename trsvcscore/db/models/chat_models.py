@@ -88,3 +88,12 @@ class ChatReel(Base):
 
     user = relationship(User, backref="chat_reels")
     chat = relationship(Chat)
+
+class SpotlightChat(Base):
+    __tablename__ = "spotlight_chat"
+
+    id = Column(Integer, primary_key=True)
+    chat_id = Column(Integer, ForeignKey("chat.id"), unique=True)
+    rank = Column(Integer)
+
+    chat = relationship(Chat)
